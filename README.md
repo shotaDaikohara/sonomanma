@@ -9,3 +9,4 @@ git clone https://github.com/shotaDaikohara/sonomanma.git
 docker compose build 
 
 docker compose　up
+hello.test.test
