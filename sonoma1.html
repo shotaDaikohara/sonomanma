@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StayConnect - 宿泊マッチングアプリ</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .modal { display: none; }
+        .modal.active { display: flex; }
+        
+        .calendar-day {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .calendar-day.available {
+            background-color: #10b981;
+            color: white;
+        }
+        
+        .calendar-day.partially-available {
+            background-color: #f59e0b;
+            color: white;
+        }
+        
+        .calendar-day:hover {
+            transform: scale(1.1);
+        }
+        
+        .host-card {
+            transition: all 0.3s ease;
+        }
+        
+        .host-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .interest-tag {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .match-reason {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            line-height: 1.4;
+            margin: 8px 0;
+        }
+        
+        .match-rate {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-md mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-home text-2xl text-blue-600 mr-2"></i>
+                    <h1 class="text-xl font-bold text-gray-800">StayConnect</h1>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-bell text-gray-600"></i>
+                    <i class="fas fa-user-circle text-2xl text-gray-600"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="max-w-md mx-auto min-h-screen pb-20">
+        
+        <!-- Sign Up Screen -->
+        <div id="signup-screen" class="tab-content active">
+            <div class="p-6">
+                <div class="text-center mb-8">
+                    <div class="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mx-auto mb-4 flex items-center justify-center">
+                        <i class="fas fa-home text-3xl text-white"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">StayConnectへようこそ</h2>
+                    <p class="text-gray-600">新しい出会いと宿泊体験を始めましょう</p>
+                </div>
+                
+                <form class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">お名前</label>
+                        <input type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="山田 太郎">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">メールアドレス</label>
+                        <input type="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="example@email.com">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">パスワード</label>
+                        <input type="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="••••••••">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">興味関心（複数選択可）</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-blue-50">
+                                <input type="checkbox" class="mr-2">
+                                <span class="text-sm">🎵 音楽</span>
+                            </label>
+                            <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-blue-50">
+                                <input type="checkbox" class="mr-2">
+                                <span class="text-sm">🍳 料理</span>
+                            </label>
+                            <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-blue-50">
+                                <input type="checkbox" class="mr-2">
+                                <span class="text-sm">✈️ 旅行</span>
+                            </label>
+                            <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-blue-50">
+                                <input type="checkbox" class="mr-2">
+                                <span class="text-sm">⚽ スポーツ</span>
+                            </label>
+                            <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-blue-50">
+                                <input type="checkbox" class="mr-2">
+                                <span class="text-sm">🎨 アート</span>
+                            </label>
+                            <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-blue-50">
+                                <input type="checkbox" class="mr-2">
+                                <span class="text-sm">📚 読書</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="button" onclick="completeSignup()" class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition duration-200">
+                        アカウント作成
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- My Page -->
+        <div id="mypage-content" class="tab-content">
+            <div class="p-6">
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xl font-bold">
+                            山田
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-semibold">山田 太郎</h3>
+                            <p class="text-gray-600 text-sm">東京都在住</p>
+                            <div class="flex items-center mt-1">
+                                <div class="flex text-yellow-400">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                </div>
+                                <span class="text-sm text-gray-600 ml-2">4.8 (12件)</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h4 class="font-semibold mb-2">興味関心</h4>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="interest-tag px-3 py-1 rounded-full text-white text-sm">🎵 音楽</span>
+                            <span class="interest-tag px-3 py-1 rounded-full text-white text-sm">🍳 料理</span>
+                            <span class="interest-tag px-3 py-1 rounded-full text-white text-sm">✈️ 旅行</span>
+                        </div>
+                    </div>
+                    
+                    <button class="w-full bg-blue-500 text-white py-2 rounded-lg">プロフィール編集</button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="bg-white rounded-lg shadow-sm p-4 flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fas fa-history text-blue-500 mr-3"></i>
+                            <span>宿泊履歴</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400"></i>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow-sm p-4 flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fas fa-heart text-red-500 mr-3"></i>
+                            <span>お気に入り</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400"></i>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow-sm p-4 flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fas fa-cog text-gray-500 mr-3"></i>
+                            <span>設定</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Content -->
+        <div id="search-content" class="tab-content">
+            <div class="p-4">
+               
+
+                    <!-- Host Listings -->
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-semibold text-lg">宿主一覧</h3>
+                            <span class="text-sm text-gray-600">マッチング率順</span>
+                        </div>
+                        
+                        <!-- Host Card 1 - 98%マッチ -->
+                        <div class="host-card bg-white rounded-lg shadow-sm p-4" onclick="showHostDetails('host1')">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-12 h-12 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                                    田中
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h4 class="font-semibold">田中 花子</h4>
+                                        <div class="flex items-center space-x-2">
+                                            <span class="match-rate">98%マッチ</span>
+                                            <div class="flex items-center text-yellow-400 text-sm">
+                                                <i class="fas fa-star mr-1"></i>
+                                                <span>4.9</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mb-2">渋谷駅徒歩5分 • 1K アパート</p>
+                                    
+                                    <!-- Available Dates -->
+                                    <div class="mb-3">
+                                        <p class="text-sm font-medium text-gray-700 mb-1">宿泊可能日程：</p>
+                                        <div class="flex flex-wrap gap-1">
+                                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">12/23-25 (年末)</span>
+                                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">1/6-8 (週末)</span>
+                                            <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">2/11 (祝日)</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Match Reason -->
+                                    <div class="match-reason">
+                                        あなたと音楽と料理の趣味が完全に一致しています。
+                                        同じくジャズピアノを演奏され、イタリアン料理が得意とのことで会話も弾みそうです。
+                                        また渋谷という立地も、あなたの希望エリアと完全に合致しています。
+                                    </div>
+                                    
+                                    <div class="flex space-x-1">
+                                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">🎵音楽</span>
+                                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">🍳料理</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    <!-- Host Card 2 - 94%マッチ -->
+                    <div class="host-card bg-white rounded-lg shadow-sm p-4" onclick="showHostDetails('host2')">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-12 h-12 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
+                                佐藤
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h4 class="font-semibold">佐藤 次郎</h4>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="match-rate">94%マッチ</span>
+                                        <div class="flex items-center text-yellow-400 text-sm">
+                                            <i class="fas fa-star mr-1"></i>
+                                            <span>4.7</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-2">新宿駅徒歩3分 • 2DK マンション</p>
+                                
+                                <!-- Available Dates -->
+                                <div class="mb-3">
+                                    <p class="text-sm font-medium text-gray-700 mb-1">宿泊可能日程：</p>
+                                    <div class="flex flex-wrap gap-1">
+                                        <span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">夏休み期間</span>
+                                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">毎週末</span>
+                                        <span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs">GW期間</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Match Reason -->
+                                <div class="match-reason">
+                                    旅行とスポーツの共通趣味があり、特にトレッキングとテニスが共通しています。
+                                    新宿という交通の便が良い立地で、観光やアクティビティへのアクセスも抜群です。
+                                    レビューでも親切で話しやすい人柄と高く評価されています。
+                                </div>
+                                
+                                <div class="flex space-x-1">
+                                    <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">✈️旅行</span>
+                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">⚽スポーツ</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Host Card 3 - 91%マッチ -->
+                    <div class="host-card bg-white rounded-lg shadow-sm p-4" onclick="showHostDetails('host3')">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-12 h-12 bg-gradient-to-r from-yellow-400 to-red-500 rounded-full flex items-center justify-center text-white font-bold">
+                                鈴木
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h4 class="font-semibold">鈴木 美咲</h4>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="match-rate">91%マッチ</span>
+                                        <div class="flex items-center text-yellow-400 text-sm">
+                                            <i class="fas fa-star mr-1"></i>
+                                            <span>4.8</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-2">原宿駅徒歩8分 • 1LDK アパート</p>
+                                
+                                <!-- Available Dates -->
+                                <div class="mb-3">
+                                    <p class="text-sm font-medium text-gray-700 mb-1">宿泊可能日程：</p>
+                                    <div class="flex flex-wrap gap-1">
+                                        <span class="bg-pink-100 text-pink-800 px-2 py-1 rounded text-xs">平日のみ</span>
+                                        <span class="bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-xs">春休み期間</span>
+                                        <span class="bg-teal-100 text-teal-800 px-2 py-1 rounded text-xs">冬休み期間</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Match Reason -->
+                                <div class="match-reason">
+                                    アートと旅行が共通の趣味で、特に現代アートと写真撮影が好きという点で意気投合できそうです。
+                                    原宿という文化的なエリアに住んでおり、美術館やギャラリー巡りの情報も豊富です。
+                                    クリエイティブな活動を一緒に楽しめる可能性が高いです。
+                                </div>
+                                
+                                <div class="flex space-x-1">
+                                    <span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs">🎨アート</span>
+                                    <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">✈️旅行</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Host Card 4 - 88%マッチ -->
+                    <div class="host-card bg-white rounded-lg shadow-sm p-4" onclick="showHostDetails('host4')">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-12 h-12 bg-gradient-to-r from-indigo-400 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold">
+                                高橋
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h4 class="font-semibold">高橋 健太</h4>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="match-rate">88%マッチ</span>
+                                        <div class="flex items-center text-yellow-400 text-sm">
+                                            <i class="fas fa-star mr-1"></i>
+                                            <span>4.6</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-2">池袋駅徒歩7分 • 1DK マンション</p>
+                                
+                                <!-- Available Dates -->
+                                <div class="mb-3">
+                                    <p class="text-sm font-medium text-gray-700 mb-1">宿泊可能日程：</p>
+                                    <div class="flex flex-wrap gap-1">
+                                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">土日祝日</span>
+                                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">連休期間</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Match Reason -->
+                                <div class="match-reason">
+                                    読書と音楽という知的な趣味が共通しており、特に哲学書とクラシック音楽への造詣が深い方です。
+                                    静かで落ち着いた環境で、深い議論や読書の時間を共有できそうです。
+                                    池袋の利便性も良く、書店巡りなども一緒に楽しめます。
+                                </div>
+                                
+                                <div class="flex space-x-1">
+                                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">🎵音楽</span>
+                                    <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">📚読書</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Host Card 5 - 85%マッチ -->
+                    <div class="host-card bg-white rounded-lg shadow-sm p-4" onclick="showHostDetails('host5')">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-12 h-12 bg-gradient-to-r from-pink-400 to-rose-500 rounded-full flex items-center justify-center text-white font-bold">
+                                伊藤
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h4 class="font-semibold">伊藤 由香</h4>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="match-rate">85%マッチ</span>
+                                        <div class="flex items-center text-yellow-400 text-sm">
+                                            <i class="fas fa-star mr-1"></i>
+                                            <span>4.7</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-2">恵比寿駅徒歩5分 • 1K アパート</p>
+                                
+                                <!-- Available Dates -->
+                                <div class="mb-3">
+                                    <p class="text-sm font-medium text-gray-700 mb-1">宿泊可能日程：</p>
+                                    <div class="flex flex-wrap gap-1">
+                                        <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">年末年始</span>
+                                        <span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">月1-2回</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Match Reason -->
+                                <div class="match-reason">
+                                    料理とアートが共通の趣味で、特にお菓子作りと陶芸に興味をお持ちです。
+                                    恵比寿という洗練されたエリアで、おしゃれなカフェや美術館の情報に詳しい方です。
+                                    クリエイティブな活動を通じて、充実した時間を過ごせる可能性が高いです。
+                                </div>
+                                
+                                <div class="flex space-x-1">
+                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">🍳料理</span>
+                                    <span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs">🎨アート</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Host Card 6 - 82%マッチ -->
+                    <div class="host-card bg-white rounded-lg shadow-sm p-4" onclick="showHostDetails('host6')">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-12 h-12 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full flex items-center justify-center text-white font-bold">
+                                渡辺
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h4 class="font-semibold">渡辺 翔太</h4>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="match-rate">82%マッチ</span>
+                                        <div class="flex items-center text-yellow-400 text-sm">
+                                            <i class="fas fa-star mr-1"></i>
+                                            <span>4.5</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-2">上野駅徒歩10分 • 2K アパート</p>
+                                
+                                <!-- Available Dates -->
+                                <div class="mb-3">
+                                    <p class="text-sm font-medium text-gray-700 mb-1">宿泊可能日程：</p>
+                                    <div class="flex flex-wrap gap-1">
+                                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">平日夜</span>
+                                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">祝日前</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Match Reason -->
+                                <div class="match-reason">
+                                    スポーツと旅行の趣味が一致しており、特にサイクリングとキャンプがお好きです。
+                                    上野という文化的なエリアに住んでおり、博物館や美術館へのアクセスも良好です。
+                                    アクティブな活動と文化的な体験の両方を楽しめる環境を提供できます。
+                                </div>
+                                
+                                <div class="flex space-x-1">
+                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">⚽スポーツ</span>
+                                    <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">✈️旅行</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Host Card 7 - 79%マッチ -->
+                    <div class="host-card bg-white rounded-lg shadow-sm p-4" onclick="showHostDetails('host7')">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-12 h-12 bg-gradient-to-r from-violet-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                                中村
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h4 class="font-semibold">中村 麻衣</h4>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="match-rate">79%マッチ</span>
+                                        <div class="flex items-center text-yellow-400 text-sm">
+                                            <i class="fas fa-star mr-1"></i>
+                                            <span>4.4</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-2">吉祥寺駅徒歩12分 • 1LDK アパート</p>
+                                
+                                <!-- Available Dates -->
+                                <div class="mb-3">
+                                    <p class="text-sm font-medium text-gray-700 mb-1">宿泊可能日程：</p>
+                                    <div class="flex flex-wrap gap-1">
+                                        <span class="bg-teal-100 text-teal-800 px-2 py-1 rounded text-xs">週末のみ</span>
+                                        <span class="bg-pink-100 text-pink-800 px-2 py-1 rounded text-xs">長期休暇</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Match Reason -->
+                                <div class="match-reason">
+                                    読書とアートへの関心が共通しており、特に文学と現代美術に深い知識をお持ちです。
+                                    吉祥寺という落ち着いた住環境で、ゆっくりと文化的な話題を楽しめます。
+                                    古書店巡りやギャラリー訪問など、知的な体験を共有できそうです。
+                                </div>
+                                
+                                <div class="flex space-x-1">
+                                    <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">📚読書</span>
+                                    <span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs">🎨アート</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Host Card 8 - 76%マッチ -->
+                    <div class="host-card bg-white rounded-lg shadow-sm p-4" onclick="showHostDetails('host8')">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-12 h-12 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold">
+                                山本
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h4 class="font-semibold">山本 雄介</h4>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="match-rate">76%マッチ</span>
+                                        <div class="flex items-center text-yellow-400 text-sm">
+                                            <i class="fas fa-star mr-1"></i>
+                                            <span>4.3</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-2">中野駅徒歩8分 • 1DK マンション</p>
+                                
+                                <!-- Available Dates -->
+                                <div class="mb-3">
+                                    <p class="text-sm font-medium text-gray-700 mb-1">宿泊可能日程：</p>
+                                    <div class="flex flex-wrap gap-1">
+                                        <span class="bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-xs">不定期</span>
+                                        <span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs">短期のみ</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Match Reason -->
+                                <div class="match-reason">
+                                    音楽とスポーツが共通の趣味で、特にロックバンドとフットサルに熱心に取り組んでいます。
+                                    中野という音楽文化が豊かなエリアに住んでおり、ライブハウス情報にも詳しいです。
+                                    音楽談義やスポーツ観戦を通じて、エネルギッシュな時間を過ごせます。
+                                </div>
+                                
+                                <div class="flex space-x-1">
+                                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">🎵音楽</span>
+                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">⚽スポーツ</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Host Card 9 - 73%マッチ -->
+                    <div class="host-card bg-white rounded-lg shadow-sm p-4" onclick="showHostDetails('host9')">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-12 h-12 bg-gradient-to-r from-sky-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                                小林
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h4 class="font-semibold">小林 智子</h4>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="match-rate">73%マッチ</span>
+                                        <div class="flex items-center text-yellow-400 text-sm">
+                                            <i class="fas fa-star mr-1"></i>
+                                            <span>4.2</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-2">赤坂見附駅徒歩6分 • 1K アパート</p>
+                                
+                                <!-- Available Dates -->
+                                <div class="mb-3">
+                                    <p class="text-sm font-medium text-gray-700 mb-1">宿泊可能日程：</p>
+                                    <div class="flex flex-wrap gap-1">
+                                        <span class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-xs">平日夜</span>
+                                        <span class="bg-violet-100 text-violet-800 px-2 py-1 rounded text-xs">週末朝</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Match Reason -->
+                                <div class="match-reason">
+                                    料理と旅行への情熱が共通しており、特に各国料理とグルメ旅行の経験が豊富です。
+                                    赤坂という国際的なエリアに住んでおり、様々な文化の料理を楽しめる環境です。
+                                    食を通じた文化交流や、旅行先でのグルメ情報交換ができそうです。
+                                </div>
+                                
+                                <div class="flex space-x-1">
+                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">🍳料理</span>
+                                    <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">✈️旅行</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Host Card 10 - 70%マッチ -->
+                    <div class="host-card bg-white rounded-lg shadow-sm p-4" onclick="showHostDetails('host10')">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-12 h-12 bg-gradient-to-r from-rose-400 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
+                                加藤
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h4 class="font-semibold">加藤 大輔</h4>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="match-rate">70%マッチ</span>
+                                        <div class="flex items-center text-yellow-400 text-sm">
+                                            <i class="fas fa-star mr-1"></i>
+                                            <span>4.1</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-2">品川駅徒歩15分 • 1LDK マンション</p>
+                                
+                                <!-- Available Dates -->
+                                <div class="mb-3">
+                                    <p class="text-sm font-medium text-gray-700 mb-1">宿泊可能日程：</p>
+                                    <div class="flex flex-wrap gap-1">
+                                        <span class="bg-cyan-100 text-cyan-800 px-2 py-1 rounded text-xs">月2-3回</span>
+                                        <span class="bg-lime-100 text-lime-800 px-2 py-1 rounded text-xs">事前相談</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Match Reason -->
+                                <div class="match-reason">
+                                    読書とスポーツの趣味が一致しており、特にビジネス書とマラソンに関心があります。
+                                    品川という交通の要所に住んでおり、各方面へのアクセスが非常に良好です。
+                                    朝のランニングや読書会など、健康的で知的な活動を一緒に楽しめます。
+                                </div>
+                                
+                                <div class="flex space-x-1">
+                                    <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">📚読書</span>
+                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">⚽スポーツ</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Content -->
+        <div id="chat-content" class="tab-content">
+            <div class="p-4">
+                <h3 class="font-semibold text-lg mb-4">チャット</h3>
+                
+                <!-- Chat List -->
+                <div class="space-y-3">
+                    <div class="bg-white rounded-lg shadow-sm p-4" onclick="openChatRoom('tanaka')">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                                田中
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-1">
+                                    <h4 class="font-semibold">田中 花子</h4>
+                                    <span class="text-xs text-gray-500">14:30</span>
+                                </div>
+                                <p class="text-sm text-gray-600">来週の宿泊について相談させてください</p>
+                                <div class="flex items-center mt-2">
+                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs mr-2">承認済み</span>
+                                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">日程調整中</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow-sm p-4" onclick="openChatRoom('sato')">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
+                                佐藤
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-1">
+                                    <h4 class="font-semibold">佐藤 次郎</h4>
+                                    <span class="text-xs text-gray-500">昨日</span>
+                                </div>
+                                <p class="text-sm text-gray-600">友達申請ありがとうございます！</p>
+                                <div class="flex items-center mt-2">
+                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">友達申請中</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reviews Content -->
+        <div id="reviews-content" class="tab-content">
+            <div class="p-4">
+                <h3 class="font-semibold text-lg mb-4">評価・記録</h3>
+                
+                <!-- My Stats -->
+                <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+                    <h4 class="font-semibold mb-3">あなたの評価</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-600">4.8</div>
+                            <div class="text-sm text-gray-600">平均評価</div>
+                            <div class="flex justify-center text-yellow-400 mt-1">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-600">12</div>
+                            <div class="text-sm text-gray-600">宿泊回数</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Review History -->
+                <div class="space-y-4">
+                    <h4 class="font-semibold">宿泊履歴・レビュー</h4>
+                    
+                    <div class="bg-white rounded-lg shadow-sm p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                                    田中
+                                </div>
+                                <div>
+                                    <h5 class="font-semibold">田中 花子さん宅</h5>
+                                    <p class="text-sm text-gray-600">2024年11月15-17日</p>
+                                </div>
+                            </div>
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-700 mb-2">とても快適に過ごせました。田中さんは親切で、料理も美味しくて素晴らしい滞在でした。</p>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-blue-600">詳細を見る</span>
+                            <span class="text-gray-500">無料宿泊 × 2泊</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow-sm p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-gradient-to-r from-yellow-400 to-red-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                                    鈴木
+                                </div>
+                                <div>
+                                    <h5 class="font-semibold">鈴木 美咲さん宅</h5>
+                                    <p class="text-sm text-gray-600">2024年10月28-30日</p>
+                                </div>
+                            </div>
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="far fa-star"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-700 mb-2">アートに関する素晴らしい会話ができました。立地も良く、おすすめです。</p>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-blue-600">詳細を見る</span>
+                            <span class="text-gray-500">無料宿泊 × 2泊</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Write Review Button -->
+                <button class="w-full bg-blue-500 text-white py-3 rounded-lg mt-6" onclick="openReviewModal()">
+                    新しいレビューを書く
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Host Details Modal -->
+    <div id="host-details-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white max-w-md w-full mx-4 rounded-lg max-h-screen overflow-y-auto">
+            <div class="p-4 border-b">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-semibold text-lg">宿主詳細</h3>
+                    <button onclick="closeHostDetails()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-4">
+                <div class="text-center mb-6">
+                    <div class="w-20 h-20 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white text-xl font-bold mx-auto mb-3">
+                        田中
+                    </div>
+                    <h4 class="text-xl font-semibold">田中 花子</h4>
+                    <p class="text-gray-600">渋谷駅徒歩5分</p>
+                    <div class="flex justify-center items-center mt-2">
+                        <div class="flex text-yellow-400 mr-2">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <span class="text-gray-600">4.9 (24件のレビュー)</span>
+                    </div>
+                </div>
+                
+                <!-- Calendar View -->
+                <div class="mb-6">
+                    <h5 class="font-semibold mb-3">宿泊可能カレンダー</h5>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <div class="text-center mb-3 font-semibold">2024年12月</div>
+                        <div class="grid grid-cols-7 gap-1 text-center text-xs mb-2">
+                            <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
+                        </div>
+                        <div class="grid grid-cols-7 gap-1">
+                            <div class="calendar-day">1</div>
+                            <div class="calendar-day">2</div>
+                            <div class="calendar-day">3</div>
+                            <div class="calendar-day">4</div>
+                            <div class="calendar-day">5</div>
+                            <div class="calendar-day">6</div>
+                            <div class="calendar-day">7</div>
+                            <div class="calendar-day">8</div>
+                            <div class="calendar-day">9</div>
+                            <div class="calendar-day">10</div>
+                            <div class="calendar-day">11</div>
+                            <div class="calendar-day">12</div>
+                            <div class="calendar-day">13</div>
+                            <div class="calendar-day available">14</div>
+                            <div class="calendar-day">15</div>
+                            <div class="calendar-day">16</div>
+                            <div class="calendar-day">17</div>
+                            <div class="calendar-day">18</div>
+                            <div class="calendar-day">19</div>
+                            <div class="calendar-day">20</div>
+                            <div class="calendar-day">21</div>
+                            <div class="calendar-day">22</div>
+                            <div class="calendar-day available">23</div>
+                            <div class="calendar-day available">24</div>
+                            <div class="calendar-day available">25</div>
+                            <div class="calendar-day">26</div>
+                            <div class="calendar-day">27</div>
+                            <div class="calendar-day partially-available">28</div>
+                            <div class="calendar-day partially-available">29</div>
+                            <div class="calendar-day">30</div>
+                            <div class="calendar-day">31</div>
+                        </div>
+                        <div class="flex items-center justify-center space-x-4 mt-3 text-xs">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-green-500 rounded-full mr-1"></div>
+                                <span>空室</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-yellow-500 rounded-full mr-1"></div>
+                                <span>一部空き</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <h5 class="font-semibold mb-2">自己紹介</h5>
+                        <p class="text-sm text-gray-600">音楽と料理が大好きです。一緒に楽しい時間を過ごしましょう！渋谷の便利な立地で、観光にも便利です。</p>
+                    </div>
+                    
+                    <div>
+                        <h5 class="font-semibold mb-2">興味関心</h5>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">🎵 音楽</span>
+                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">🍳 料理</span>
+                            <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm">🎬 映画</span>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h5 class="font-semibold mb-2">宿泊について</h5>
+                        <div class="bg-blue-50 p-3 rounded-lg">
+                            <div class="text-lg font-semibold text-blue-600">無料宿泊</div>
+                            <div class="text-sm text-gray-600">WiFi・朝食付き</div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h5 class="font-semibold mb-2">設備・サービス</h5>
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div class="flex items-center">
+                                <i class="fas fa-wifi text-blue-500 mr-2"></i>
+                                <span>WiFi</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-utensils text-green-500 mr-2"></i>
+                                <span>キッチン使用可</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-shower text-blue-500 mr-2"></i>
+                                <span>シャワー・風呂</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-coffee text-brown-500 mr-2"></i>
+                                <span>朝食付き</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex space-x-3 mt-6">
+                    <button onclick="sendFriendRequest()" class="flex-1 bg-blue-500 text-white py-3 rounded-lg">
+                        友達申請
+                    </button>
+                    <button onclick="addToFavorites()" class="px-4 py-3 border border-gray-300 rounded-lg">
+                        <i class="far fa-heart"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Room Modal -->
+    <div id="chat-room-modal" class="modal fixed inset-0 bg-white z-50">
+        <div class="flex flex-col h-full">
+            <div class="bg-white shadow-sm p-4 flex items-center">
+                <button onclick="closeChatRoom()" class="mr-3 text-gray-600">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold mr-3">
+                        田中
+                    </div>
+                    <div>
+                        <div class="font-semibold">田中 花子</div>
+                        <div class="text-xs text-green-500">オンライン</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex-1 p-4 overflow-y-auto space-y-3">
+                <!-- System Message -->
+                <div class="text-center">
+                    <div class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm inline-block">
+                        友達申請が承認されました
+                    </div>
+                </div>
+                
+                <!-- Messages -->
+                <div class="flex justify-start">
+                    <div class="bg-gray-200 rounded-lg px-3 py-2 max-w-xs">
+                        <div class="text-sm">こんにちは！友達申請ありがとうございます。</div>
+                        <div class="text-xs text-gray-500 mt-1">14:20</div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end">
+                    <div class="bg-blue-500 text-white rounded-lg px-3 py-2 max-w-xs">
+                        <div class="text-sm">こちらこそ、ありがとうございます！来週の宿泊について相談したいです。</div>
+                        <div class="text-xs text-blue-200 mt-1">14:25</div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-start">
+                    <div class="bg-gray-200 rounded-lg px-3 py-2 max-w-xs">
+                        <div class="text-sm">もちろんです！どちらの日程をご希望ですか？</div>
+                        <div class="text-xs text-gray-500 mt-1">14:28</div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end">
+                    <div class="bg-blue-500 text-white rounded-lg px-3 py-2 max-w-xs">
+                        <div class="text-sm">12月23日〜25日はいかがでしょうか？</div>
+                        <div class="text-xs text-blue-200 mt-1">14:30</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white border-t p-4">
+                <div class="flex items-center space-x-3">
+                    <input type="text" placeholder="メッセージを入力..." class="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500">
+                    <button class="bg-blue-500 text-white w-10 h-10 rounded-full flex items-center justify-center">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t max-w-md mx-auto">
+        <div class="grid grid-cols-4">
+            <button onclick="showTab('mypage')" class="nav-btn p-3 text-center">
+                <i class="fas fa-user text-xl mb-1 text-gray-400"></i>
+                <div class="text-xs text-gray-600">マイページ</div>
+            </button>
+            <button onclick="showTab('search')" class="nav-btn p-3 text-center">
+                <i class="fas fa-search text-xl mb-1 text-blue-500"></i>
+                <div class="text-xs text-blue-600">宿泊検索</div>
+            </button>
+            <button onclick="showTab('chat')" class="nav-btn p-3 text-center">
+                <i class="fas fa-comments text-xl mb-1 text-gray-400"></i>
+                <div class="text-xs text-gray-600">チャット</div>
+            </button>
+            <button onclick="showTab('reviews')" class="nav-btn p-3 text-center">
+                <i class="fas fa-star text-xl mb-1 text-gray-400"></i>
+                <div class="text-xs text-gray-600">評価・記録</div>
+            </button>
+        </div>
+    </nav>
+
+    <script>
+        // Tab Navigation
+        function showTab(tabName) {
+            // Hide all tab contents
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            
+            // Hide signup screen
+            document.getElementById('signup-screen').classList.remove('active');
+            
+            // Show selected tab
+            document.getElementById(tabName + '-content').classList.add('active');
+            
+            // Update navigation buttons
+            const buttons = document.querySelectorAll('.nav-btn');
+            buttons.forEach(btn => {
+                const icon = btn.querySelector('i');
+                const text = btn.querySelector('div');
+                icon.classList.remove('text-blue-500');
+                icon.classList.add('text-gray-400');
+                text.classList.remove('text-blue-600');
+                text.classList.add('text-gray-600');
+            });
+            
+            // Highlight active button
+            const activeButton = event.target.closest('.nav-btn');
+            if (activeButton) {
+                const icon = activeButton.querySelector('i');
+                const text = activeButton.querySelector('div');
+                icon.classList.remove('text-gray-400');
+                icon.classList.add('text-blue-500');
+                text.classList.remove('text-gray-600');
+                text.classList.add('text-blue-600');
+            }
+        }
+        
+        // Complete signup and show search tab
+        function completeSignup() {
+            document.getElementById('signup-screen').classList.remove('active');
+            document.getElementById('search-content').classList.add('active');
+            
+            // Update nav to show search as active
+            const searchButton = document.querySelectorAll('.nav-btn')[1];
+            const icon = searchButton.querySelector('i');
+            const text = searchButton.querySelector('div');
+            icon.classList.remove('text-gray-400');
+            icon.classList.add('text-blue-500');
+            text.classList.remove('text-gray-600');
+            text.classList.add('text-blue-600');
+        }
+        
+        // Host Details Modal
+        function showHostDetails(hostId) {
+            document.getElementById('host-details-modal').classList.add('active');
+        }
+        
+        function closeHostDetails() {
+            document.getElementById('host-details-modal').classList.remove('active');
+        }
+        
+        // Chat Room Modal
+        function openChatRoom(userId) {
+            document.getElementById('chat-room-modal').classList.add('active');
+        }
+        
+        function closeChatRoom() {
+            document.getElementById('chat-room-modal').classList.remove('active');
+        }
+        
+        // Friend Request
+        function sendFriendRequest() {
+            alert('友達申請を送信しました！');
+            closeHostDetails();
+        }
+        
+        // Add to Favorites
+        function addToFavorites() {
+            const heartIcon = event.target.closest('button').querySelector('i');
+            if (heartIcon.classList.contains('far')) {
+                heartIcon.classList.remove('far');
+                heartIcon.classList.add('fas');
+                heartIcon.style.color = '#ef4444';
+            } else {
+                heartIcon.classList.remove('fas');
+                heartIcon.classList.add('far');
+                heartIcon.style.color = '';
+            }
+        }
+        
+        // Review Modal
+        function openReviewModal() {
+            alert('レビュー作成画面を開きます');
+        }
+        
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set search as default active tab if not on signup
+            const searchButton = document.querySelectorAll('.nav-btn')[1];
+            if (searchButton) {
+                const icon = searchButton.querySelector('i');
+                const text = searchButton.querySelector('div');
+                if (icon && text) {
+                    icon.classList.remove('text-gray-400');
+                    icon.classList.add('text-blue-500');
+                    text.classList.remove('text-gray-600');
+                    text.classList.add('text-blue-600');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
