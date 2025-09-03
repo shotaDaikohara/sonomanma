@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # FastAPI バックエンド
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - vllm
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # vLLM サーバー
+  vllm:
+    image: vllm/vllm-openai:latest
+    ports:
+      - "8001:8000"
+    environment:
+      - CUDA_VISIBLE_DEVICES=0  # GPU使用時
+    command: >
+      --model microsoft/DialoGPT-medium
+      --host 0.0.0.0
+      --port 8000
+      --max-model-len 1024
+    networks:
+      - app-network
+    restart: unless-stopped
+    # GPU使用時のコメントアウト解除
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # 簡易フロントエンド用のWebサーバー
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    networks:
+      - app-network
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge

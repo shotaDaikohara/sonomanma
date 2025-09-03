@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Text Generator - ハッカソン</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 800px;
+            width: 90%;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .input-section {
+            margin-bottom: 30px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .max-tokens {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        input[type="number"] {
+            width: 100px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result-section {
+            margin-top: 30px;
+        }
+        
+        .result {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 100px;
+            white-space: pre-wrap;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        
+        .success {
+            color: #155724;
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+        
+        .stats {
+            margin-top: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 AI テキスト生成</h1>
+        
+        <div class="input-section">
+            <label for="systemPrompt">システムプロンプト（任意）：</label>
+            <textarea id="systemPrompt" rows="3">あなたは親切でおせっかいな大阪のおばちゃんです。学生に対して温かい言葉を話すように心がけて下さい。</textarea>
+        </div>
+        
+        <div class="input-section">
+            <label for="prompt">プロンプトを入力してください：</label>
+            <textarea id="prompt" placeholder="例：今日の天気について教えて"></textarea>
+        </div>
+        
+        <div class="controls">
+            <div class="max-tokens">
+                <label for="maxTokens">最大トークン数：</label>
+                <input type="number" id="maxTokens" value="100" min="10" max="1000">
+            </div>
+            <button id="generateBtn" onclick="generateText()">✨ 生成開始</button>
+        </div>
+        
+        <div class="result-section">
+            <label>生成結果：</label>
+            <div id="result" class="result">ここに生成されたテキストが表示されます</div>
+            <div id="stats" class="stats"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+        
+        async function generateText() {
+            const promptElement = document.getElementById('prompt');
+            const systemPromptElement = document.getElementById('systemPrompt');
+            const maxTokensElement = document.getElementById('maxTokens');
+            const resultElement = document.getElementById('result');
+            const statsElement = document.getElementById('stats');
+            const generateBtn = document.getElementById('generateBtn');
+            
+            const prompt = promptElement.value.trim();
+            const systemPrompt = systemPromptElement ? systemPromptElement.value.trim() : undefined;
+            const maxTokens = parseInt(maxTokensElement.value);
+            
+            if (!prompt) {
+                showError('プロンプトを入力してください');
+                return;
+            }
+            
+            // ローディング状態
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '⏳ 生成中...';
+            resultElement.innerHTML = '<div class="loading"><div class="spinner"></div>AI が考えています...</div>';
+            resultElement.className = 'result';
+            statsElement.innerHTML = '';
+            
+            try {
+                const startTime = Date.now();
+                
+                const body = {
+                    prompt: prompt,
+                    max_tokens: maxTokens
+                };
+                if (systemPrompt) body.system_prompt = systemPrompt;
+                
+                // API呼び出し
+                const response = await fetch(`${API_BASE_URL}/api/v1/ai/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(body)
+                });
+                
+                const endTime = Date.now();
+                const duration = (endTime - startTime) / 1000;
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                // 成功表示
+                resultElement.innerHTML = data.text;
+                resultElement.className = 'result success';
+                statsElement.innerHTML = `🔢 使用トークン数: ${data.tokens} | ⏱️ 生成時間: ${duration.toFixed(2)}秒`;
+                
+            } catch (error) {
+                showError(`エラーが発生しました: ${error.message}`);
+                console.error('Generation error:', error);
+            } finally {
+                // ボタンを元に戻す
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '✨ 生成開始';
+            }
+        }
+        
+        function showError(message) {
+            const resultElement = document.getElementById('result');
+            const statsElement = document.getElementById('stats');
+            
+            resultElement.innerHTML = message;
+            resultElement.className = 'result error';
+            statsElement.innerHTML = '';
+        }
+        
+        // エンターキーでも生成できるように
+        document.getElementById('prompt').addEventListener('keydown', function(event) {
+            if (event.ctrlKey && event.key === 'Enter') {
+                generateText();
+            }
+        });
+        
+        // ページロード時にAPI接続確認
+        window.onload = async function() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                if (response.ok) {
+                    console.log('✅ API server is connected');
+                }
+            } catch (error) {
+                console.log('⚠️ API server not available, will use mock data');
+            }
+        };
+    </script>
+</body>
+</html>
