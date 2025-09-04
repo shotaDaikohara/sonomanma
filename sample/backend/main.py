@@ -33,7 +33,7 @@ class GenerateResponse(BaseModel):
     tokens: int
 
 # vLLM サーバーの設定
-VLLM_URL = os.getenv("VLLM_URL", "http://160.251.239.162:8001")  # default: internal docker service or override with env var
+VLLM_URL = os.getenv("VLLM_URL", "http://160.251.238.189:8001")  # default: internal docker service or override with env var
 
 # デフォルトのシステムプロンプト（大阪のおばちゃんペルソナ）
 DEFAULT_SYSTEM_PROMPT = os.getenv(
@@ -77,14 +77,25 @@ async def generate_text(request: GenerateRequest):
                 {"role": "user", "content": request.prompt}
             ]
 
+        # If messages are present, send to chat completions endpoint (/v1/chat/completions)
+        # Some vLLM / inference servers expect chat-style requests at a different path
+        # while the /v1/completions endpoint expects a top-level `prompt`.
+        if "messages" in vllm_request:
+            endpoint = "/v1/chat/completions"
+            # remove prompt when calling chat endpoint to avoid confusing upstreams
+            payload = {k: v for k, v in vllm_request.items() if k != "prompt"}
+        else:
+            endpoint = "/v1/completions"
+            payload = vllm_request
+
         # タイムアウト60秒
         timeout = httpx.Timeout(60.0)
         
         async with httpx.AsyncClient(timeout=timeout) as client:
             try:
                 response = await client.post(
-                    f"{VLLM_URL}/v1/completions",
-                    json=vllm_request,
+                    f"{VLLM_URL}{endpoint}",
+                    json=payload,
                     headers={"Content-Type": "application/json"}
                 )
                 response.raise_for_status()
@@ -97,12 +108,18 @@ async def generate_text(request: GenerateRequest):
                 tokens_used = 0
 
                 if isinstance(vllm_response, dict):
-                    # OpenAI-like shape
+                    # OpenAI-like shape or chat-like shape
                     choices = vllm_response.get("choices")
                     if choices and isinstance(choices, list) and len(choices) > 0:
                         first = choices[0]
                         if isinstance(first, dict):
-                            generated_text = first.get("text") or first.get("message") or first.get("output")
+                            # chat-style: {"message": {"role":"assistant","content": "..."}}
+                            msg = first.get("message") or first.get("delta")
+                            if isinstance(msg, dict):
+                                generated_text = msg.get("content") or msg.get("text")
+                            # completion-style: {"text": "..."}
+                            if not generated_text:
+                                generated_text = first.get("text") or first.get("output") or first.get("content")
 
                     # usage fallback
                     usage = vllm_response.get("usage") or vllm_response.get("meta") or {}
