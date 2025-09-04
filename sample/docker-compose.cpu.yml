@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # FastAPI バックエンド
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - vllm
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # vLLM サーバー (CPU版・軽量モデル)
+  vllm:
+    image: vllm/vllm-openai:latest
+    ports:
+      - "8001:8000"
+    environment:
+      - CUDA_VISIBLE_DEVICES=""  # CPU強制
+    command: >
+      --model gpt2
+      --host 0.0.0.0
+      --port 8000
+      --max-model-len 512
+      --enforce-eager
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # 簡易フロントエンド用のWebサーバー
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    networks:
+      - app-network
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
