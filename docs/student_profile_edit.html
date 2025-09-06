@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生プロフィール編集 - そのまんま</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo UI', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #6c757d;
+            font-size: 16px;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title::before {
+            content: "📝";
+            margin-right: 8px;
+            font-size: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #495057;
+            font-size: 14px;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            background-color: white;
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group input[type="number"]:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            background-color: white;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-item:hover {
+            background-color: #f8f9fa;
+            border-color: #007bff;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+
+        .checkbox-item label {
+            margin: 0;
+            font-weight: normal;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .description {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .required {
+            color: #dc3545;
+            margin-left: 3px;
+        }
+
+        .submit-section {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #e9ecef;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 123, 255, 0.3);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 123, 255, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        /* レスポンシブデザイン */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 15px;
+                border-radius: 8px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .section-title {
+                font-size: 18px;
+            }
+
+            .form-section {
+                padding: 15px;
+            }
+
+            .checkbox-group {
+                grid-template-columns: 1fr;
+            }
+
+            .submit-btn {
+                width: 100%;
+                padding: 15px 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                margin: 5px;
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .form-group input[type="text"],
+            .form-group input[type="number"],
+            .form-group select,
+            .form-group textarea {
+                font-size: 16px; /* iOS でズームを防ぐ */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>学生プロフィール編集</h1>
+            <p>あなたの情報を入力して、理想のホストとマッチングしましょう</p>
+        </div>
+
+        <form id="studentProfileForm">
+            <!-- 基本情報セクション -->
+            <div class="form-section">
+                <h2 class="section-title">基本情報</h2>
+                
+                <div class="form-group">
+                    <label for="name">氏名<span class="required">*</span></label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="age">年齢<span class="required">*</span></label>
+                    <input type="number" id="age" name="age" min="18" max="100" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="gender">性別<span class="required">*</span></label>
+                    <select id="gender" name="gender" required>
+                        <option value="">選択してください</option>
+                        <option value="男性">男性</option>
+                        <option value="女性">女性</option>
+                        <option value="その他">その他</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="current_affiliation">現在の所属<span class="required">*</span></label>
+                    <select id="current_affiliation" name="current_affiliation" required>
+                        <option value="">選択してください</option>
+                        <option value="大学">大学</option>
+                        <option value="大学院">大学院</option>
+                        <option value="専門学校">専門学校</option>
+                        <option value="卒業生">卒業生</option>
+                        <option value="その他">その他</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="school_name">学校名<span class="required">*</span></label>
+                    <input type="text" id="school_name" name="school_name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="grade">学年<span class="required">*</span></label>
+                    <select id="grade" name="grade" required>
+                        <option value="">選択してください</option>
+                        <option value="1年生">1年生</option>
+                        <option value="2年生">2年生</option>
+                        <option value="3年生">3年生</option>
+                        <option value="4年生">4年生</option>
+                        <option value="5年生以上">5年生以上</option>
+                        <option value="修士1年">修士1年</option>
+                        <option value="修士2年">修士2年</option>
+                        <option value="博士課程">博士課程</option>
+                        <option value="その他">その他</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="birthplace">出身地<span class="required">*</span></label>
+                    <select id="birthplace" name="birthplace" required>
+                        <option value="">選択してください</option>
+                        <option value="北海道">北海道</option>
+                        <option value="青森県">青森県</option>
+                        <option value="岩手県">岩手県</option>
+                        <option value="宮城県">宮城県</option>
+                        <option value="秋田県">秋田県</option>
+                        <option value="山形県">山形県</option>
+                        <option value="福島県">福島県</option>
+                        <option value="茨城県">茨城県</option>
+                        <option value="栃木県">栃木県</option>
+                        <option value="群馬県">群馬県</option>
+                        <option value="埼玉県">埼玉県</option>
+                        <option value="千葉県">千葉県</option>
+                        <option value="東京都">東京都</option>
+                        <option value="神奈川県">神奈川県</option>
+                        <option value="新潟県">新潟県</option>
+                        <option value="富山県">富山県</option>
+                        <option value="石川県">石川県</option>
+                        <option value="福井県">福井県</option>
+                        <option value="山梨県">山梨県</option>
+                        <option value="長野県">長野県</option>
+                        <option value="岐阜県">岐阜県</option>
+                        <option value="静岡県">静岡県</option>
+                        <option value="愛知県">愛知県</option>
+                        <option value="三重県">三重県</option>
+                        <option value="滋賀県">滋賀県</option>
+                        <option value="京都府">京都府</option>
+                        <option value="大阪府">大阪府</option>
+                        <option value="兵庫県">兵庫県</option>
+                        <option value="奈良県">奈良県</option>
+                        <option value="和歌山県">和歌山県</option>
+                        <option value="鳥取県">鳥取県</option>
+                        <option value="島根県">島根県</option>
+                        <option value="岡山県">岡山県</option>
+                        <option value="広島県">広島県</option>
+                        <option value="山口県">山口県</option>
+                        <option value="徳島県">徳島県</option>
+                        <option value="香川県">香川県</option>
+                        <option value="愛媛県">愛媛県</option>
+                        <option value="高知県">高知県</option>
+                        <option value="福岡県">福岡県</option>
+                        <option value="佐賀県">佐賀県</option>
+                        <option value="長崎県">長崎県</option>
+                        <option value="熊本県">熊本県</option>
+                        <option value="大分県">大分県</option>
+                        <option value="宮崎県">宮崎県</option>
+                        <option value="鹿児島県">鹿児島県</option>
+                        <option value="沖縄県">沖縄県</option>
+                        <option value="海外">海外</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="current_prefecture">現在住んでいる都道府県<span class="required">*</span></label>
+                    <select id="current_prefecture" name="current_prefecture" required>
+                        <option value="">選択してください</option>
+                        <option value="北海道">北海道</option>
+                        <option value="青森県">青森県</option>
+                        <option value="岩手県">岩手県</option>
+                        <option value="宮城県">宮城県</option>
+                        <option value="秋田県">秋田県</option>
+                        <option value="山形県">山形県</option>
+                        <option value="福島県">福島県</option>
+                        <option value="茨城県">茨城県</option>
+                        <option value="栃木県">栃木県</option>
+                        <option value="群馬県">群馬県</option>
+                        <option value="埼玉県">埼玉県</option>
+                        <option value="千葉県">千葉県</option>
+                        <option value="東京都">東京都</option>
+                        <option value="神奈川県">神奈川県</option>
+                        <option value="新潟県">新潟県</option>
+                        <option value="富山県">富山県</option>
+                        <option value="石川県">石川県</option>
+                        <option value="福井県">福井県</option>
+                        <option value="山梨県">山梨県</option>
+                        <option value="長野県">長野県</option>
+                        <option value="岐阜県">岐阜県</option>
+                        <option value="静岡県">静岡県</option>
+                        <option value="愛知県">愛知県</option>
+                        <option value="三重県">三重県</option>
+                        <option value="滋賀県">滋賀県</option>
+                        <option value="京都府">京都府</option>
+                        <option value="大阪府">大阪府</option>
+                        <option value="兵庫県">兵庫県</option>
+                        <option value="奈良県">奈良県</option>
+                        <option value="和歌山県">和歌山県</option>
+                        <option value="鳥取県">鳥取県</option>
+                        <option value="島根県">島根県</option>
+                        <option value="岡山県">岡山県</option>
+                        <option value="広島県">広島県</option>
+                        <option value="山口県">山口県</option>
+                        <option value="徳島県">徳島県</option>
+                        <option value="香川県">香川県</option>
+                        <option value="愛媛県">愛媛県</option>
+                        <option value="高知県">高知県</option>
+                        <option value="福岡県">福岡県</option>
+                        <option value="佐賀県">佐賀県</option>
+                        <option value="長崎県">長崎県</option>
+                        <option value="熊本県">熊本県</option>
+                        <option value="大分県">大分県</option>
+                        <option value="宮崎県">宮崎県</option>
+                        <option value="鹿児島県">鹿児島県</option>
+                        <option value="沖縄県">沖縄県</option>
+                        <option value="海外">海外</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 交流・貢献セクション -->
+            <div class="form-section">
+                <h2 class="section-title">交流・貢献</h2>
+                
+                <div class="form-group">
+                    <label>お手伝いできること<span class="required">*</span></label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="help_cleaning" name="help_cleaning" value="掃除・片付け（15分程度）">
+                            <label for="help_cleaning">掃除・片付け（15分程度）</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="help_pc" name="help_pc" value="PC・スマホの簡単なお手伝い">
+                            <label for="help_pc">PC・スマホの簡単なお手伝い</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="help_hometown" name="help_hometown" value="出身地の話をする">
+                            <label for="help_hometown">出身地の話をする</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="help_cooking" name="help_cooking" value="料理の手伝い">
+                            <label for="help_cooking">料理の手伝い</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="help_hobby" name="help_hobby" value="趣味の話を聞く">
+                            <label for="help_hobby">趣味の話を聞く</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="help_other" name="help_other" value="その他">
+                            <label for="help_other">その他</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 挑戦についてセクション -->
+            <div class="form-section">
+                <h2 class="section-title">挑戦について</h2>
+                
+                <div class="form-group">
+                    <label for="purpose">滞在目的（自由記述）<span class="required">*</span></label>
+                    <textarea id="purpose" name="purpose" placeholder="なぜこの活動に参加したいのか、どのような経験を得たいのかを教えてください" required></textarea>
+                </div>
+            </div>
+
+            <!-- あなたのことセクション -->
+            <div class="form-section">
+                <h2 class="section-title">あなたのこと</h2>
+                
+                <div class="form-group">
+                    <label for="self_pr">自己PR（自由記述）<span class="required">*</span></label>
+                    <textarea id="self_pr" name="self_pr" placeholder="あなたの性格、趣味、特技、価値観など、ホストに知ってもらいたいことを自由に書いてください" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>興味・関心のある分野<span class="required">*</span></label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="interest_career" name="interest_career" value="キャリア・就職活動">
+                            <label for="interest_career">キャリア・就職活動</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="interest_specialty" name="interest_specialty" value="特定の専門分野">
+                            <label for="interest_specialty">特定の専門分野</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="interest_reading" name="interest_reading" value="読書・知的好奇心">
+                            <label for="interest_reading">読書・知的好奇心</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="interest_cooking" name="interest_cooking" value="料理・食文化">
+                            <label for="interest_cooking">料理・食文化</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="interest_exploration" name="interest_exploration" value="地域探索・街歩き">
+                            <label for="interest_exploration">地域探索・街歩き</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="interest_community" name="interest_community" value="コミュニティ・人との繋がり">
+                            <label for="interest_community">コミュニティ・人との繋がり</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="interest_dialogue" name="interest_dialogue" value="対話・自己探求">
+                            <label for="interest_dialogue">対話・自己探求</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="interest_serendipity" name="interest_serendipity" value="偶発的な出会い">
+                            <label for="interest_serendipity">偶発的な出会い</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="interest_other" name="interest_other" value="その他">
+                            <label for="interest_other">その他</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="mbti">MBTI</label>
+                    <select id="mbti" name="mbti">
+                        <option value="">選択してください（任意）</option>
+                        <option value="INTJ">INTJ - 建築家</option>
+                        <option value="INTP">INTP - 論理学者</option>
+                        <option value="ENTJ">ENTJ - 指揮官</option>
+                        <option value="ENTP">ENTP - 討論者</option>
+                        <option value="INFJ">INFJ - 提唱者</option>
+                        <option value="INFP">INFP - 仲介者</option>
+                        <option value="ENFJ">ENFJ - 主人公</option>
+                        <option value="ENFP">ENFP - 運動家</option>
+                        <option value="ISTJ">ISTJ - 管理者</option>
+                        <option value="ISFJ">ISFJ - 擁護者</option>
+                        <option value="ESTJ">ESTJ - 幹部</option>
+                        <option value="ESFJ">ESFJ - 領事</option>
+                        <option value="ISTP">ISTP - 巨匠</option>
+                        <option value="ISFP">ISFP - 冒険家</option>
+                        <option value="ESTP">ESTP - 起業家</option>
+                        <option value="ESFP">ESFP - エンターテイナー</option>
+                    </select>
+                    <div class="description">16タイプの性格診断結果（任意）</div>
+                </div>
+            </div>
+
+            <div class="submit-section">
+                <button type="submit" class="submit-btn">プロフィールを更新する</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('studentProfileForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // 必須チェックボックスの確認
+            const helpCheckboxes = document.querySelectorAll('input[name^="help_"]:checked');
+            const interestCheckboxes = document.querySelectorAll('input[name^="interest_"]:checked');
+            
+            if (helpCheckboxes.length === 0) {
+                alert('お手伝いできることを1つ以上選択してください。');
+                return;
+            }
+            
+            if (interestCheckboxes.length === 0) {
+                alert('興味・関心のある分野を1つ以上選択してください。');
+                return;
+            }
+            
+            // フォームデータの収集
+            const formData = new FormData(this);
+            const data = {};
+            
+            for (let [key, value] of formData.entries()) {
+                if (data[key]) {
+                    if (Array.isArray(data[key])) {
+                        data[key].push(value);
+                    } else {
+                        data[key] = [data[key], value];
+                    }
+                } else {
+                    data[key] = value;
+                }
+            }
+            
+            console.log('送信データ:', data);
+            alert('プロフィールが更新されました！');
+        });
+    </script>
+</body>
+</html>
