@@ -7,7 +7,6 @@ import logging
 from typing import Optional
 import os
 import re
-import json
 
 # ログ設定
 logging.basicConfig(level=logging.INFO)
@@ -146,100 +145,11 @@ async def generate_text(request: GenerateRequest):
                         if isinstance(vresp, dict) and "text" in vresp:
                             generated_text = vresp.get("text")
                         else:
-                            # Avoid Python's single-quoted repr (which is not valid JSON). Prefer JSON string.
-                            try:
-                                generated_text = json.dumps(vresp, ensure_ascii=False)
-                            except Exception:
-                                generated_text = str(vresp)
-
-                    # Ensure the returned payload is a plain string. If it's a non-string (dict/list), JSON-encode it.
-                    if not isinstance(generated_text, str):
-                        try:
-                            generated_text = json.dumps(generated_text, ensure_ascii=False)
-                        except Exception:
-                            generated_text = str(generated_text)
+                            generated_text = str(vresp)
 
                     return generated_text, int(tokens_used or 0)
 
                 generated_text, tokens_used = extract_generated_text(vllm_response)
-
-                # Try to unwrap nested JSON strings. Some upstreams return a JSON wrapper
-                # where the useful payload is itself an escaped JSON string in a field
-                # such as "output". Detect and extract that inner JSON so the frontend
-                # receives the actual JSON payload (not a double-encoded wrapper).
-                def _try_unwrap_json_string(s: str) -> str:
-                    if not isinstance(s, str):
-                        return s
-                    # First, try to parse the entire string as JSON
-                    parsed = None
-                    try:
-                        parsed = json.loads(s)
-                    except Exception:
-                        parsed = None
-
-                    if isinstance(parsed, dict):
-                        # Look for common keys that may contain the real payload
-                        for key in ("output", "text", "content", "message", "result", "response"):
-                            if key in parsed:
-                                val = parsed.get(key)
-                                # If the value is already a dict/list, return it as JSON string
-                                if isinstance(val, (dict, list)):
-                                    try:
-                                        return json.dumps(val, ensure_ascii=False)
-                                    except Exception:
-                                        return str(val)
-                                # If the value is a string that *looks like* JSON, try to parse it
-                                if isinstance(val, str) and '{' in val and '}' in val:
-                                    try:
-                                        inner = json.loads(val)
-                                        return json.dumps(inner, ensure_ascii=False)
-                                    except Exception:
-                                        # Try unescaping common escape sequences and parse again
-                                        try:
-                                            unescaped = val.encode('utf-8').decode('unicode_escape')
-                                            inner = json.loads(unescaped)
-                                            return json.dumps(inner, ensure_ascii=False)
-                                        except Exception:
-                                            pass
-                        # If nothing matched, but parsed itself is a dict, return it as JSON
-                        try:
-                            return json.dumps(parsed, ensure_ascii=False)
-                        except Exception:
-                            return str(parsed)
-
-                    # If parsed is a list, inspect first element for embedded payload
-                    if isinstance(parsed, list) and len(parsed) > 0 and isinstance(parsed[0], dict):
-                        first = parsed[0]
-                        for key in ("text", "output", "content"):
-                            if key in first:
-                                val = first.get(key)
-                                if isinstance(val, (dict, list)):
-                                    try:
-                                        return json.dumps(val, ensure_ascii=False)
-                                    except Exception:
-                                        return str(val)
-                                if isinstance(val, str) and '{' in val and '}' in val:
-                                    try:
-                                        inner = json.loads(val)
-                                        return json.dumps(inner, ensure_ascii=False)
-                                    except Exception:
-                                        pass
-
-                    # As a last-ditch attempt, try to find a JSON object inside the string
-                    if isinstance(s, str) and '{' in s and '}' in s:
-                        # Find first '{' and last '}' and attempt to load that substring
-                        try:
-                            start = s.index('{')
-                            end = s.rindex('}') + 1
-                            candidate = s[start:end]
-                            inner = json.loads(candidate)
-                            return json.dumps(inner, ensure_ascii=False)
-                        except Exception:
-                            pass
-
-                    return s
-
-                generated_text = _try_unwrap_json_string(generated_text)
 
                 # If model returned a schema-description rather than JSON, retry once with strict system prompt
                 if looks_like_schema_explanation(generated_text):
