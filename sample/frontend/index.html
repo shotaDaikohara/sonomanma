@@ -936,29 +936,42 @@
       } finally {
         host.loading = false;
         if (btn) { btn.disabled = false; btn.innerText = '更新'; }
-        // After updating host data, re-sort and re-render the host list so match order is updated
-        renderHosts();
-        // find the re-rendered card for this host and expand its AI panel so updated contents are visible
+        // Update only the affected card and move it to keep the list sorted to avoid wiping other cards' DOM/state.
         try {
+          updateCardDisplay(host);
           const container = document.getElementById('hosts');
-          const card = container.querySelector(`.host-card[data-id="${host.id}"]`);
-          if (card) {
-            // populate inline panel now that DOM nodes exist
+          const card = container ? container.querySelector(`.host-card[data-id="${host.id}"]`) : null;
+          // If the card exists, reposition it according to host.match without re-rendering whole list
+          if (card && container) {
+            const otherCards = Array.from(container.querySelectorAll('.host-card')).filter(c => c !== card);
+            let inserted = false;
+            for (const c of otherCards) {
+              const otherId = c.getAttribute('data-id');
+              const otherHost = hosts.find(h => h.id === otherId);
+              // Insert before the first card with lower match (so higher-match cards stay earlier)
+              if (!otherHost || (otherHost.match != null && host.match != null && otherHost.match < host.match)) {
+                container.insertBefore(card, c);
+                inserted = true;
+                break;
+              }
+            }
+            if (!inserted) container.appendChild(card);
+
+            // ensure inline panel shows updated content for the updated host
             renderInlinePanel(host, card);
             const panel = card.querySelector('[data-ai-panel]');
             const toggle = card.querySelector('.ai-toggle-btn');
             if (panel) {
-              // expand the panel to show explanation/chips by default after update
               panel.classList.remove('collapsed');
-              if (toggle) {
-                toggle.setAttribute('aria-expanded', 'true');
-                toggle.innerText = '閉じる';
-              }
+              if (toggle) { toggle.setAttribute('aria-expanded','true'); toggle.innerText = '閉じる'; }
               const chips = panel.querySelector('.ai-chips'); if (chips) chips.setAttribute('aria-hidden', 'false');
               const explEl = panel.querySelector('.ai-explanation'); if (explEl) explEl.setAttribute('aria-hidden', 'false');
             }
           }
-        } catch (e) { /* ignore UI restore errors */ }
+        } catch (e) {
+          // Fallback: full re-render only if incremental update fails
+          renderHosts();
+        }
       }
     }
 
