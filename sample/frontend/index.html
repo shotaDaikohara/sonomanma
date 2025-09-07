@@ -53,11 +53,30 @@
       </div>
       <div class="flex items-center space-x-3">
         <i class="fas fa-search text-gray-600"></i>
-        <i class="fas fa-user-circle text-gray-600"></i>
+        <i id="user-icon-btn" role="button" aria-label="学生情報を開く" tabindex="0" class="fas fa-user-circle text-gray-600 cursor-pointer"></i>
         <button id="edit-prompt-btn" class="ml-3 text-sm px-2 py-1 border rounded">プロンプト編集</button>
       </div>
     </div>
   </header>
+
+  <!-- Student profile modal -->
+  <div id="student-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-65">
+    <div class="bg-white max-w-md w-full mx-4 rounded-lg overflow-y-auto max-h-[80vh] p-4">
+      <div class="p-2 border-b flex items-center justify-between">
+        <div>
+          <h3 class="font-semibold text-lg">学生プロフィール</h3>
+        </div>
+        <button id="student-close" class="text-gray-600"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="p-3 space-y-3 text-sm text-gray-700">
+        <div><div class="font-semibold">名前</div><div id="student-name">--</div></div>
+        <div class="flex gap-4"><div><div class="font-semibold">性別</div><div id="student-gender">--</div></div><div><div class="font-semibold">年齢</div><div id="student-age">--</div></div><div><div class="font-semibold">居住地</div><div id="student-location">--</div></div></div>
+        <div><div class="font-semibold">自己PR</div><div id="student-selfpr">--</div></div>
+        <div><div class="font-semibold">目的</div><div id="student-purpose">--</div></div>
+        <div class="flex justify-end"><button id="student-close-cta" class="px-3 py-1 bg-blue-500 text-white rounded">閉じる</button></div>
+      </div>
+    </div>
+  </div>
 
   <main class="max-w-2xl mx-auto p-4">
     <div class="flex items-center justify-between mb-4">
@@ -82,7 +101,7 @@
       </div>
       <div class="p-4 space-y-4">
         <div>
-          <h4 class="font-semibold mb-2">カレンダー（例）</h4>
+          <h4 class="font-semibold mb-2">カレンダー</h4>
           <div class="flex items-center justify-between mb-2">
             <button id="cal-prev" class="px-2 py-1 rounded hover:bg-gray-100">‹</button>
             <div id="cal-month" class="font-semibold">2024年12月</div>
@@ -147,12 +166,12 @@
     ];
 
     const hosts = [
-      { id: 'host1', name: '田中 花子', location: '渋谷駅', bio: '音楽と料理が好き。ジャズピアノ演奏とイタリアンが得意。', free_text: virtualHostTexts[0], gender: 'female', age: 35, match: 98, rating: 4.9, tags: ['🎵 音楽','🍳 料理'], offers: ['料理教室','ピアノ演奏観賞'], motivation: '地域交流と若者支援', available: ['2024-12-23','2024-12-24','2024-12-25'] },
-      { id: 'host2', name: '佐藤 次郎', location: '新宿駅', bio: '旅行とスポーツが好き。トレッキングやテニスを楽しみます。', free_text: virtualHostTexts[1], gender: 'male', age: 44, match: 94, rating: 4.7, tags: ['✈️ 旅行','⚽ スポーツ'], offers: ['近隣案内','子どもとの遊び手伝い'], motivation: '国際交流と地域活性化', available: ['2025-01-06','2025-01-07'] },
-      { id: 'host3', name: '鈴木 美咲', location: '原宿駅', bio: 'アートと写真が好き。美術館巡りが趣味。', free_text: virtualHostTexts[2], gender: 'female', age: 29, match: 91, rating: 4.8, tags: ['🎨 アート','✈️ 旅行'], offers: ['写真散歩案内','美術館ツアー'], motivation: '文化交流と写真の共有', available: ['2025-02-11'] },
-      { id: 'host4', name: '山本 隆', location: '恵比寿駅', bio: '写真家でカメラ好き。街歩きと撮影スポット案内が得意。', free_text: virtualHostTexts[5], gender: 'male', age: 28, match: 89, rating: 4.6, tags: ['📷 写真','☕ カフェ'], offers: ['撮影スポット案内','ワークショップ開催'], motivation: '若手応援と共同制作', available: ['2025-03-10','2025-03-11'] },
-      { id: 'host5', name: '高橋 純子', location: '吉祥寺駅', bio: '庭師。四季の手入れと家庭料理を楽しむ穏やかな生活。', free_text: virtualHostTexts[6], gender: 'female', age: 52, match: 92, rating: 4.9, tags: ['🌿 庭いじり','🍚 手料理'], offers: ['庭仕事体験','家庭料理提供'], motivation: '世代間交流と自然の共有', available: ['2025-04-01','2025-04-02'] },
-      { id: 'host6', name: '中村 翔太', location: '品川駅', bio: 'スタートアップの共同創業者。テックとデザインの話が得意。', free_text: virtualHostTexts[7], gender: 'male', age: 34, match: 85, rating: 4.5, tags: ['💡 テック','🎨 デザイン'], offers: ['プロダクト相談','デザインワークショップ'], motivation: '知見共有とコミュニティ構築', available: ['2025-02-20','2025-02-21'] }
+      { id: 'host1', name: '田中 花子', location: '渋谷駅', bio: '音楽と料理が好き。ジャズピアノ演奏とイタリアンが得意。', free_text: virtualHostTexts[0], gender: 'female', age: 35, match: 98, rating: 4.9, tags: ['🎵 音楽','🍳 料理'], offers: ['料理教室','ピアノ演奏観賞'], motivation: '地域交流と若者支援', available: ['2025-09-05','2025-09-12','2025-10-03'] },
+      { id: 'host2', name: '佐藤 次郎', location: '新宿駅', bio: '旅行とスポーツが好き。トレッキングやテニスを楽しみます。', free_text: virtualHostTexts[1], gender: 'male', age: 44, match: 94, rating: 4.7, tags: ['✈️ 旅行','⚽ スポーツ'], offers: ['近隣案内','子どもとの遊び手伝い'], motivation: '国際交流と地域活性化', available: ['2025-09-20','2025-09-27'] },
+      { id: 'host3', name: '鈴木 美咲', location: '原宿駅', bio: 'アートと写真が好き。美術館巡りが趣味。', free_text: virtualHostTexts[2], gender: 'female', age: 29, match: 91, rating: 4.8, tags: ['🎨 アート','✈️ 旅行'], offers: ['写真散歩案内','美術館ツアー'], motivation: '文化交流と写真の共有', available: ['2025-10-11'] },
+      { id: 'host4', name: '山本 隆', location: '恵比寿駅', bio: '写真家でカメラ好き。街歩きと撮影スポット案内が得意。', free_text: virtualHostTexts[5], gender: 'male', age: 28, match: 89, rating: 4.6, tags: ['📷 写真','☕ カフェ'], offers: ['撮影スポット案内','ワークショップ開催'], motivation: '若手応援と共同制作', available: ['2025-09-15','2025-09-16'] },
+      { id: 'host5', name: '高橋 純子', location: '吉祥寺駅', bio: '庭師。四季の手入れと家庭料理を楽しむ穏やかな生活。', free_text: virtualHostTexts[6], gender: 'female', age: 52, match: 92, rating: 4.9, tags: ['🌿 庭いじり','🍚 手料理'], offers: ['庭仕事体験','家庭料理提供'], motivation: '世代間交流と自然の共有', available: ['2025-11-01','2025-11-02'] },
+      { id: 'host6', name: '中村 翔太', location: '品川駅', bio: 'スタートアップの共同創業者。テックとデザインの話が得意。', free_text: virtualHostTexts[7], gender: 'male', age: 34, match: 85, rating: 4.5, tags: ['💡 テック','🎨 デザイン'], offers: ['プロダクト相談','デザインワークショップ'], motivation: '知見共有とコミュニティ構築', available: ['2025-09-29','2025-10-05'] }
     ];
 
     // Try to extract the first balanced {...} JSON-like substring from a text blob
@@ -181,7 +200,7 @@
     // Older/alternate prompts can be kept in the editor modal; these defaults ensure no ReferenceError.
     let systemPrompt = `あなたは学生とホストの相性を評価するアシスタントです。簡潔で決定論的な回答をし、可能な限りOUTPUT SCHEMAに従ったJSONを返してください。回答は必ず日本語で行ってください。`;
 
-    let promptTemplate = `学生とホストの相性を評価してください。利用可能な情報 (学生: {{student.name}}, 性別: {{student.gender}}, 年齢: {{student.age}}, 居住地: {{student.location}}, 自己PR: {{student.self_pr}}, 目的: {{student.purpose}}; ホスト: {{host.name}}, 性別: {{host.gender}}, 年齢: {{host.age}}, 居住地: {{host.location}}, 自己紹介: {{host.bio}}, タグ: {{host.tags}}, 提供内容: {{host.offers}}, 詳細情報: {{host.free_text}}, 動機: {{host.motivation}}) を使用してください。
+    let promptTemplate = `学生とホストの相性を評価してください。利用可能な情報 (学生: 性別: {{student.gender}}, 年齢: {{student.age}}, 居住地: {{student.location}}, 自己PR: {{student.self_pr}}, 目的: {{student.purpose}}; ホスト: 性別: {{host.gender}}, 年齢: {{host.age}}, 居住地: {{host.location}}, 自己紹介: {{host.bio}}, タグ: {{host.tags}}, 提供内容: {{host.offers}}, 詳細情報: {{host.free_text}}, 動機: {{host.motivation}}) を使用してください。
 
 以下のOUTPUT SCHEMAに厳密に従って、JSONオブジェクトのみを返してください：
 {
@@ -211,14 +230,15 @@
         .replaceAll('{{student.gender}}', studentInfo.gender)
         .replaceAll('{{student.age}}', String(studentInfo.age))
         .replaceAll('{{student.location}}', studentInfo.location)
-        .replaceAll('{{student.name}}', studentInfo.name || '')
+        // remove student name to avoid sending personal information
+        .replaceAll('{{student.name}}', '')
         .replaceAll('{{student.self_pr}}', studentInfo.self_pr || '')
         .replaceAll('{{student.purpose}}', studentInfo.purpose || '')
         .replaceAll('{{host.gender}}', host.gender || '')
         .replaceAll('{{host.age}}', String(host.age || 0))
         .replaceAll('{{host.location}}', host.location || '');
       // additional host fields
-      s = s.replaceAll('{{host.name}}', host.name || '')
+      s = s.replaceAll('{{host.name}}', '')
            .replaceAll('{{host.bio}}', host.bio || '')
            .replaceAll('{{host.offers}}', Array.isArray(host.offers) ? host.offers.join(', ') : (host.offers || ''))
            .replaceAll('{{host.motivation}}', host.motivation || '')
@@ -233,11 +253,14 @@
       s = s.replaceAll('{{student.gender}}', studentInfo.gender)
         .replaceAll('{{student.age}}', String(studentInfo.age))
         .replaceAll('{{student.location}}', studentInfo.location)
-        .replaceAll('{{student.name}}', studentInfo.name || '')
+        // do not include student name
+        .replaceAll('{{student.name}}', '')
         .replaceAll('{{student.self_pr}}', studentInfo.self_pr || '')
         .replaceAll('{{student.purpose}}', studentInfo.purpose || '')
         .replaceAll('{{host.gender}}', host.gender || '')
         .replaceAll('{{host.age}}', String(host.age || 0))
+        // do not include host name
+        .replaceAll('{{host.name}}', '')
         .replaceAll('{{host.location}}', host.location || '');
       // Attach compact JSON context only in system prompt to avoid duplication
       s += '\n\n<!-- CONTEXT_START -->\n' + structuredContext(host) + '\n<!-- CONTEXT_END -->';
@@ -248,7 +271,8 @@
     function structuredContext(host) {
       const ctx = {
         student: {
-          name: studentInfo.name || null,
+          // remove personal name from structured context to avoid leaking PII
+          name: null,
           gender: studentInfo.gender || null,
           age: Number(studentInfo.age || 0),
           location: studentInfo.location || null,
@@ -256,8 +280,9 @@
           purpose: studentInfo.purpose || null
         },
         host: {
+          // remove personal name from structured context as well
           id: host.id || null,
-          name: host.name || null,
+          name: null,
           gender: host.gender || null,
           age: Number(host.age || 0),
           location: host.location || null,
@@ -269,6 +294,204 @@
         }
       };
       return JSON.stringify(ctx, null, 2);
+    }
+
+    // Update only the DOM for a single host card (avoid full re-render/resort)
+    function updateCardDisplay(host) {
+      try {
+        const container = document.getElementById('hosts');
+        const card = container.querySelector(`.host-card[data-id="${host.id}"]`);
+        if (!card) return;
+        const matchEl = card.querySelector('.match-rate');
+        if (matchEl) matchEl.innerText = `${host.match}%マッチ`;
+        const lastEl = card.querySelector('.last-updated');
+        if (lastEl) lastEl.innerText = host.lastUpdated || '-';
+        const explainEl = card.querySelector('[data-explain]');
+        if (explainEl) explainEl.innerText = host.explanation || '';
+        // update inline ai panel
+        renderInlinePanel(host, card);
+        // ensure raw stored on host model; show-raw reads from model
+        // in case any tag-based snippets rely on match/reason snippets, update them too
+        const reasonBadge = card.querySelector('.match-reason');
+        if (reasonBadge && host.tags) reasonBadge.innerText = (host.tags.slice(0,2).join(' / ')) + ' による高い親和性が確認されています。';
+      } catch (e) {
+        // fallback: if anything goes wrong, re-render entire list
+        renderHosts();
+      }
+    }
+
+    // Call backend AI generate API to update match info for a host
+    async function updateMatch(hostId, btn, cardEl) {
+      const host = hosts.find(h => h.id === hostId);
+      if (!host) return;
+
+      host.loading = true;
+      if (btn) { btn.disabled = true; btn.innerText = '更新中...'; }
+      updateCardDisplay(host);
+
+      // build prompts using existing helpers
+      const prompt = buildPrompt(host, 'match');
+      const system_for_call = buildSystemPrompt(host);
+
+      try {
+        const res = await fetch('http://localhost:8000/api/v1/ai/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, system_prompt: system_for_call, max_tokens: 4096 })
+        });
+
+        // always read as text first (some servers return application/json, some text)
+        const text = await res.text();
+        host.raw = text;
+
+        // try to parse top-level JSON
+        let parsedTop = null;
+        try { parsedTop = JSON.parse(text); } catch (e) { parsedTop = null; }
+
+        // extract likely generator content candidates
+        let generated = null;
+        if (parsedTop && typeof parsedTop === 'object') {
+          // common shapes
+          if (typeof parsedTop.text === 'string') generated = parsedTop.text;
+          else if (Array.isArray(parsedTop.choices) && parsedTop.choices.length > 0) {
+            generated = parsedTop.choices[0].message?.content ?? parsedTop.choices[0].text ?? null;
+          } else if (typeof parsedTop === 'string') {
+            generated = parsedTop;
+          } else {
+            // fallback: maybe parsedTop itself is the payload
+            generated = parsedTop;
+          }
+        } else {
+          generated = text;
+        }
+
+        // helper: attempt to repeatedly unwrap stringified JSON until we get an object/array
+        function tryParseNestedJSON(input) {
+          let cur = input;
+          for (let i = 0; i < 6; i++) {
+            if (cur == null) return null;
+            if (typeof cur === 'object') return cur; // already parsed
+            if (typeof cur !== 'string') return null;
+            const s = cur.trim();
+            // if looks like JSON object/array, try parse
+            if (s.startsWith('{') || s.startsWith('[')) {
+              try { cur = JSON.parse(s); continue; } catch (e) { /* continue to other attempts */ }
+            }
+            // extract first balanced {...} substring and try parse
+            const objText = extractBalancedObjectText(s);
+            if (objText) {
+              try { cur = JSON.parse(objText); continue; } catch (e) { /* ignore */ }
+            }
+            // attempt to unescape common escaping artifacts and try parse
+            // Replace double-escaped backslashes then escaped quotes
+            const unescaped = s.replace(/\\\\/g, '\\').replace(/\\"/g, '"');
+            if (unescaped !== s) {
+              try { cur = JSON.parse(unescaped); continue; } catch (e) { /* ignore */ }
+            }
+            // nothing more to unwrap
+            break;
+          }
+          return null;
+        }
+
+        // Try to obtain an aiPayload object from generated / parsedTop / raw text
+        let aiPayload = null;
+        if (generated) aiPayload = tryParseNestedJSON(generated) || null;
+        if (!aiPayload && parsedTop) aiPayload = tryParseNestedJSON(parsedTop) || null;
+        if (!aiPayload) aiPayload = tryParseNestedJSON(text) || null;
+
+        // attach payload to host model
+        if (aiPayload && typeof aiPayload === 'object') host.ai = aiPayload;
+        else host.ai = (typeof generated === 'string') ? generated : host.ai || null;
+
+        // Extract numeric match value
+        function extractMatch(objOrStr) {
+          if (!objOrStr) return null;
+          if (typeof objOrStr === 'object') {
+            const keys = ['match_rate','matchRate','match','overall_match','score','overallScore'];
+            for (const k of keys) {
+              if (Object.prototype.hasOwnProperty.call(objOrStr, k)) {
+                const v = objOrStr[k];
+                const n = parseFloat(String(v).replace(/[^0-9.]/g, ''));
+                if (!isNaN(n)) return Math.max(0, Math.min(100, Math.round(n)));
+              }
+            }
+            // recursive search
+            for (const k of Object.keys(objOrStr)) {
+              const v = extractMatch(objOrStr[k]);
+              if (v != null) return v;
+            }
+            return null;
+          }
+          if (typeof objOrStr === 'string') {
+            const m1 = objOrStr.match(/(\d{1,3})\s*%/);
+            if (m1) return Math.max(0, Math.min(100, parseInt(m1[1],10)));
+            const m2 = objOrStr.match(/match[_\s-]*[:=]\s*(\d{1,3})/i);
+            if (m2) return Math.max(0, Math.min(100, parseInt(m2[1],10)));
+            const m3 = objOrStr.match(/"match_rate"\s*[:=]\s*(\d{1,3})/i);
+            if (m3) return Math.max(0, Math.min(100, parseInt(m3[1],10)));
+          }
+          return null;
+        }
+
+        let matchVal = null;
+        if (aiPayload) matchVal = extractMatch(aiPayload);
+        if (matchVal == null && parsedTop) matchVal = extractMatch(parsedTop);
+        if (matchVal == null) matchVal = extractMatch(text);
+
+        if (matchVal != null) host.match = matchVal;
+
+        // explanation extraction
+        let explanation = null;
+        if (aiPayload && typeof aiPayload === 'object') explanation = aiPayload.explanation || aiPayload.reason || null;
+        if (!explanation && parsedTop && typeof parsedTop.text === 'string') explanation = parsedTop.text;
+        if (!explanation && typeof aiPayload === 'string') explanation = aiPayload;
+        host.explanation = explanation || host.explanation || '';
+
+        host.lastUpdated = new Date().toLocaleString();
+      } catch (err) {
+        host.explanation = `通信/解析エラー: ${err.message}`;
+      } finally {
+        host.loading = false;
+        if (btn) { btn.disabled = false; btn.innerText = '更新'; }
+        // ensure the updated host's AI panel is expanded so the explanation is visible after re-render
+        host._aiExpanded = true;
+        // re-render sorted list
+        renderHosts();
+      }
+    }
+
+    // Try to parse nested/stringified JSON from various common shapes (used in multiple places)
+    function parsePotentialJSON(input) {
+      if (input == null) return null;
+      if (typeof input === 'object') return input;
+      if (typeof input !== 'string') return null;
+      let cur = input;
+      for (let i = 0; i < 6; i++) {
+        const s = String(cur).trim();
+        if (s === '') return null;
+        // direct JSON
+        if (s.startsWith('{') || s.startsWith('[')) {
+          try { return JSON.parse(s); } catch (e) { /* fallthrough */ }
+        }
+        // balanced object inside text
+        const objText = extractBalancedObjectText(s);
+        if (objText) {
+          try { return JSON.parse(objText); } catch (e) { /* continue */ }
+        }
+        // try unescaping common escapes
+        const unescaped = s.replace(/\\\\/g, '\\').replace(/\\"/g, '"');
+        if (unescaped !== s) {
+          try { cur = unescaped; continue; } catch (e) { /* ignore */ }
+        }
+        // try removing wrapping quotes
+        if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+          cur = s.slice(1, -1);
+          continue;
+        }
+        break;
+      }
+      return null;
     }
 
     function renderHosts() {
@@ -302,7 +525,7 @@
               </div>
 
               <!-- Inline AI panel (collapsed by default) -->
-              <div id="ai-panel-${h.id}" class="ai-panel mt-4 bg-blue-50 border border-blue-100 rounded p-3 collapsed" data-ai-panel role="region" aria-labelledby="ai-toggle-${h.id}" aria-hidden="false">
+              <div id="ai-panel-${h.id}" class="ai-panel mt-4 bg-blue-50 border border-blue-100 rounded p-3 ${h._aiExpanded ? '' : 'collapsed'}" data-ai-panel role="region" aria-labelledby="ai-toggle-${h.id}" aria-hidden="false">
                 <div class="ai-header flex items-center justify-between">
                   <div class="flex items-center space-x-3">
                     <div class="ai-title text-sm text-blue-600 font-medium mr-2">AIレコメンド</div>
@@ -310,7 +533,7 @@
                     <div class="ai-percent text-sm text-blue-700 font-medium ml-3">--%</div>
                   </div>
                   <div class="flex items-center space-x-2">
-                    <button id="ai-toggle-${h.id}" class="ai-toggle-btn text-sm text-blue-600" aria-expanded="false" aria-controls="ai-panel-${h.id}">展開</button>
+                    <button id="ai-toggle-${h.id}" class="ai-toggle-btn text-sm text-blue-600" aria-expanded="${h._aiExpanded ? 'true' : 'false'}" aria-controls="ai-panel-${h.id}">${h._aiExpanded ? '閉じる' : '展開'}</button>
                   </div>
                 </div>
 
@@ -405,6 +628,8 @@
           const explEl = panel.querySelector('.ai-explanation');
           if (explEl) explEl.setAttribute('aria-hidden', expanded);
           aiToggle.innerText = panel.classList.contains('collapsed') ? '展開' : '閉じる';
+          // persist expanded state on host model
+          h._aiExpanded = !panel.classList.contains('collapsed');
         });
         // allow clicking the collapsed ai-panel bar itself to expand (but don't open the host modal)
         if (aiPanel) {
@@ -421,6 +646,8 @@
             }
           });
         }
+        // populate inline AI panel contents immediately for this card
+        try { renderInlinePanel(h, el); } catch (e) { console.error('renderInlinePanel error', e); }
       });
     }
 
@@ -451,7 +678,19 @@
       const commonVal = panel.querySelector('.ai-common-val');
 
       // extract axis scores from host.ai with fallbacks
-      const ai = host.ai || {};
+      let ai = (typeof host.ai === 'object') ? host.ai : (parsePotentialJSON(host.ai) || {});
+      // If ai looks empty, try parsing raw backend text or explanation as fallback
+      const looksEmpty = !ai || (typeof ai === 'object' && Object.keys(ai).length === 0);
+      if (looksEmpty) {
+        const fromRaw = parsePotentialJSON(host.raw);
+        if (fromRaw && typeof fromRaw === 'object') ai = fromRaw;
+        else {
+          const fromExpl = parsePotentialJSON(host.explanation);
+          if (fromExpl && typeof fromExpl === 'object') ai = fromExpl;
+        }
+        // persist for subsequent renders
+        if (ai && typeof ai === 'object') host.ai = ai;
+      }
       const eScoreRaw = (ai.empathy_score ?? findDeepKey(ai, 'empathy_score')) ?? null;
       const vScoreRaw = (ai.value_score ?? findDeepKey(ai, 'value_score')) ?? null;
       const cScoreRaw = (ai.commonground_score ?? findDeepKey(ai, 'commonground_score')) ?? (ai.common_ground_score ?? findDeepKey(ai, 'common_ground_score')) ?? null;
@@ -712,275 +951,79 @@
       try { alert('プロンプトを保存しました'); } catch (err) { /* ignore */ }
     });
 
-    // NOTE: removed an accidental top-level duplicated AI call block here which contained `await` and caused a script error.
+    // Student profile modal handlers
+     function openStudentModal() {
+       // populate fields from studentInfo (local only)
+       const nameEl = document.getElementById('student-name');
+       const genderEl = document.getElementById('student-gender');
+       const ageEl = document.getElementById('student-age');
+       const locEl = document.getElementById('student-location');
+       const prEl = document.getElementById('student-selfpr');
+       const purposeEl = document.getElementById('student-purpose');
+       if (nameEl) nameEl.innerText = studentInfo.name || '--';
+       if (genderEl) genderEl.innerText = studentInfo.gender || '--';
+       if (ageEl) ageEl.innerText = studentInfo.age ? String(studentInfo.age) + '歳' : '--';
+       if (locEl) locEl.innerText = studentInfo.location || '--';
+       if (prEl) prEl.innerText = studentInfo.self_pr || '--';
+       if (purposeEl) purposeEl.innerText = studentInfo.purpose || '--';
+       const modal = document.getElementById('student-modal');
+       if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+     }
+     function closeStudentModal() {
+       const modal = document.getElementById('student-modal');
+       if (modal) { modal.classList.remove('flex'); modal.classList.add('hidden'); }
+     }
+     // 右側のユーザーアイコンからも学生プロフィールを開けるようにする
+     const userIconBtn = document.getElementById('user-icon-btn');
+     if (userIconBtn) {
+       userIconBtn.addEventListener('click', (e) => { e.preventDefault(); openStudentModal(); });
+       // キーボード操作にも対応（Enter / Space）
+       userIconBtn.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openStudentModal(); } });
+     }
 
-    // Update only the DOM for a single host card (avoid full re-render/resort)
-    function updateCardDisplay(host) {
+    // student modal close handlers
+    const studentClose = document.getElementById('student-close');
+    if (studentClose) studentClose.addEventListener('click', closeStudentModal);
+    const studentCloseCta = document.getElementById('student-close-cta');
+    if (studentCloseCta) studentCloseCta.addEventListener('click', closeStudentModal);
+
+    // Raw modal helpers
+    function openRawModal(text) {
+      const pre = document.getElementById('raw-pre');
       try {
-        const container = document.getElementById('hosts');
-        const card = container.querySelector(`.host-card[data-id="${host.id}"]`);
-        if (!card) return;
-        const matchEl = card.querySelector('.match-rate');
-        if (matchEl) matchEl.innerText = `${host.match}%マッチ`;
-        const lastEl = card.querySelector('.last-updated');
-        if (lastEl) lastEl.innerText = host.lastUpdated || '-';
-        const explainEl = card.querySelector('[data-explain]');
-        if (explainEl) explainEl.innerText = host.explanation || '';
-        // update inline ai panel
-        renderInlinePanel(host, card);
-        // ensure raw stored on host model; show-raw reads from model
-        // in case any tag-based snippets rely on match/reason snippets, update them too
-        const reasonBadge = card.querySelector('.match-reason');
-        if (reasonBadge && host.tags) reasonBadge.innerText = (host.tags.slice(0,2).join(' / ')) + ' による高い親和性が確認されています。';
-      } catch (e) {
-        // fallback: if anything goes wrong, re-render entire list
-        renderHosts();
-      }
+        pre.innerText = (typeof text === 'string') ? text : JSON.stringify(text, null, 2);
+      } catch (e) { pre.innerText = String(text); }
+      const m = document.getElementById('raw-modal');
+      if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
     }
+    function closeRawModal() {
+      const m = document.getElementById('raw-modal');
+      if (m) { m.classList.remove('flex'); m.classList.add('hidden'); }
+    }
+    const rawClose = document.getElementById('raw-close');
+    if (rawClose) rawClose.addEventListener('click', closeRawModal);
 
-    // Small helper: deep search object for any of candidate keys
-    function findDeepValue(obj, candidates = []) {
-      if (!obj || typeof obj !== 'object') return undefined;
-      for (const k of candidates) {
-        if (Object.prototype.hasOwnProperty.call(obj, k)) return obj[k];
-      }
-      for (const key of Object.keys(obj)) {
-        const val = obj[key];
-        if (val && typeof val === 'object') {
-          const found = findDeepValue(val, candidates);
-          if (found !== undefined) return found;
-        }
+    // Deep search helper: find a key anywhere in a nested object and return its value (first match)
+    function findDeepKey(obj, key) {
+      if (obj == null || typeof obj !== 'object') return undefined;
+      if (Object.prototype.hasOwnProperty.call(obj, key)) return obj[key];
+      for (const k of Object.keys(obj)) {
+        try {
+          const v = obj[k];
+          if (v && typeof v === 'object') {
+            const res = findDeepKey(v, key);
+            if (res !== undefined) return res;
+          }
+        } catch (e) { /* ignore circular or access errors */ }
       }
       return undefined;
     }
 
-    function parseNumberLike(v) {
-      if (v == null) return null;
-      if (typeof v === 'number') return v;
-      const s = String(v);
-      // percent like "85%"
-      const m1 = s.match(/(\d{1,3}(?:\.\d+)?)\s*%/);
-      if (m1) return Number(m1[1]);
-      // plain number inside text
-      const m2 = s.match(/(-?\d+(?:\.\d+)?)/);
-      if (m2) return Number(m2[1]);
-      return null;
-    }
-
-    // Implement updateMatch invoked by the 更新 button. Attempts to call backend, parse JSON-like output,
-    // and set host.ai / host.raw / host.match / host.explanation and lastUpdated. Uses extractBalancedObjectText
-    // to be resilient to noisy model outputs.
-    async function updateMatch(hostId, btn, cardEl) {
-      const host = hosts.find(h => h.id === hostId);
-      if (!host) return;
-      host.loading = true;
-      if (btn) { btn.disabled = true; btn.innerText = '更新中...'; }
-      updateCardDisplay(host);
-
-      const prompt = buildPrompt(host, 'match');
-      const system_for_call = buildSystemPrompt(host);
-
-      try {
-        const res = await fetch('http://localhost:8000/api/v1/ai/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ system_prompt: system_for_call, prompt, max_tokens: 4096 })
-        });
-
-        const text = await res.text();
-        host.raw = text;
-
-        // Try to robustly obtain a JSON payload from common wrapped formats.
-        let parsedTop = null;
-        try { parsedTop = JSON.parse(text); } catch (e) { parsedTop = null; }
-
-        let aiPayload = null;
-        let maybeObjText = null;
-
-        // Helper to attempt parsing a candidate string into JSON by trying direct parse,
-        // unescaping common sequences, and extracting a balanced JSON block.
-        function tryParseCandidateString(str) {
-          if (!str || typeof str !== 'string') return null;
-          // direct parse
-          try { return JSON.parse(str); } catch (e) {}
-          // strip wrapping quotes if present
-          if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
-            const inner = str.slice(1, -1);
-            try { return JSON.parse(inner); } catch (e) {}
-          }
-          // unescape common escape sequences
-          const unescaped = str.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-          try { return JSON.parse(unescaped); } catch (e) {}
-          // finally try to extract a balanced {...} block and parse that
-          const block = extractBalancedObjectText(str);
-          if (block) {
-            try { return JSON.parse(block); } catch (e) {}
-          }
-          return null;
-        }
-
-        // Case 1: parsedTop exists and contains a `text` string that holds the inner JSON
-        if (parsedTop && typeof parsedTop === 'object') {
-          if (typeof parsedTop.text === 'string') {
-            aiPayload = tryParseCandidateString(parsedTop.text);
-            // if still not parsed, maybe parsedTop.text contains an escaped JSON string with extra quotes; try cleaning
-            if (!aiPayload) {
-              const cleaned = parsedTop.text.replace(/^"|"$/g, '');
-              aiPayload = tryParseCandidateString(cleaned);
-            }
-          }
-
-          // Case: some LLM endpoints wrap content under choices[0].message.content or choices[0].text
-          if (!aiPayload && Array.isArray(parsedTop.choices) && parsedTop.choices.length > 0) {
-            const ch = parsedTop.choices[0];
-            const candidate = (ch.message && ch.message.content) || ch.text || ch.output || null;
-            aiPayload = tryParseCandidateString(candidate);
-          }
-
-          // If parsedTop itself already looks like the payload (contains expected keys), use it
-          if (!aiPayload) {
-            const looksLike = !!findDeepValue(parsedTop, ['match_rate','matchRate','match','overall_match','score','icebreakers','explanation']);
-            if (looksLike) aiPayload = parsedTop;
-          }
-        }
-
-        // Case 2: try to find a JSON block inside the raw text
-        if (!aiPayload) {
-          maybeObjText = extractBalancedObjectText(text);
-          if (maybeObjText) {
-            try { aiPayload = JSON.parse(maybeObjText); } catch (e) { aiPayload = null; }
-          }
-        }
-
-        // As a last resort, try to parse any JSON-like content within the top-level text string (if present)
-        if (!aiPayload && parsedTop && typeof parsedTop.text === 'string') {
-          const innerMaybe = extractBalancedObjectText(parsedTop.text);
-          if (innerMaybe) {
-            try { aiPayload = JSON.parse(innerMaybe); } catch (e) { aiPayload = null; }
-          }
-        }
-
-        // Attach payload to host model (prefer inner parsed payload)
-        if (aiPayload && typeof aiPayload === 'object') {
-          host.ai = aiPayload;
-        } else if (parsedTop && typeof parsedTop === 'object') {
-          // keep parsedTop as a fallback so raw modal shows structured info
-          host.ai = parsedTop;
-        } else {
-          host.ai = null;
-        }
-
-        // extract numeric match value from aiPayload first, then from parsedTop.text, then from raw text
-        let matchVal = null;
-        const candidates = ['match_rate','matchRate','match','overall_match','score','overallScore'];
-        if (host.ai) {
-          for (const c of candidates) {
-            const found = findDeepValue(host.ai, [c]);
-            const num = parseNumberLike(found);
-            if (num != null) { matchVal = num; break; }
-          }
-        }
-
-        // try parsedTop.text string if not found
-        if (matchVal == null && parsedTop && typeof parsedTop.text === 'string') {
-          const m = parsedTop.text.match(/"?match[_A-Za-z0-9]*"?\s*[:=]\s*([0-9]+(?:\.[0-9]+)?)/i);
-          if (m) matchVal = Number(m[1]);
-          else {
-            const m2 = parsedTop.text.match(/(\d{1,3}(?:\.\d+)?)\s*%/);
-            if (m2) matchVal = Number(m2[1]);
-          }
-        }
-
-        // fallback: regex on raw text
-        if (matchVal == null) {
-          const m = text.match(/\"?match[_A-Za-z0-9]*\"?\s*[:=]\s*([0-9]+(?:\.[0-9]+)?)/i);
-          if (m) matchVal = Number(m[1]);
-          else {
-            const m2 = text.match(/(\d{1,3}(?:\.\d+)?)\s*%/);
-            if (m2) matchVal = Number(m2[1]);
-          }
-        }
-
-        if (matchVal != null && !Number.isNaN(matchVal)) {
-          host.match = Math.max(0, Math.min(100, Math.round(matchVal)));
-        }
-
-        // explanation: prefer aiPayload.explanation or reason; if not, try to extract from inner parsed text
-        let explanation = null;
-        if (host.ai && typeof host.ai === 'object' && (host.ai.explanation || host.ai.reason)) explanation = host.ai.explanation || host.ai.reason;
-
-        if (!explanation && parsedTop && typeof parsedTop.text === 'string') {
-          const innerObjText = extractBalancedObjectText(parsedTop.text);
-          if (innerObjText) {
-            try {
-              const innerParsed = JSON.parse(innerObjText);
-              explanation = innerParsed.explanation || innerParsed.reason || innerParsed.explanation_text || '';
-            } catch (e) { /* ignore */ }
-          }
-        }
-
-        if (!explanation && host.ai && typeof host.ai === 'object') {
-          // try other common fields
-          explanation = host.ai.explanation || host.ai.reason || host.ai.explanation_text || '';
-        }
-
-        if (!explanation) {
-          const cleaned = text.replace(maybeObjText || '', '').trim();
-          explanation = cleaned.split('\n').slice(0,3).join('\n').trim();
-        }
-        host.explanation = explanation;
-        host.lastUpdated = new Date().toLocaleString();
-
-      } catch (err) {
-        host.raw = `通信/解析エラー: ${err.message}`;
-      } finally {
-        host.loading = false;
-        if (btn) { btn.disabled = false; btn.innerText = '更新'; }
-        // After updating host data, re-sort and re-render the host list so match order is updated
-        renderHosts();
-        // find the re-rendered card for this host and expand its AI panel so updated contents are visible
-        try {
-          const container = document.getElementById('hosts');
-          const card = container.querySelector(`.host-card[data-id="${host.id}"]`);
-          if (card) {
-            // populate inline panel now that DOM nodes exist
-            renderInlinePanel(host, card);
-            const panel = card.querySelector('[data-ai-panel]');
-            const toggle = card.querySelector('.ai-toggle-btn');
-            if (panel) {
-              // expand the panel to show explanation/chips by default after update
-              panel.classList.remove('collapsed');
-              if (toggle) {
-                toggle.setAttribute('aria-expanded', 'true');
-                toggle.innerText = '閉じる';
-              }
-              const chips = panel.querySelector('.ai-chips'); if (chips) chips.setAttribute('aria-hidden', 'false');
-              const explEl = panel.querySelector('.ai-explanation'); if (explEl) explEl.setAttribute('aria-hidden', 'false');
-            }
-          }
-        } catch (e) { /* ignore UI restore errors */ }
-      }
-    }
-
-    // Raw modal helpers
-    function openRawModal(text) {
-      document.getElementById('raw-pre').textContent = text;
-      document.getElementById('raw-modal').classList.remove('hidden');
-      document.getElementById('raw-modal').classList.add('flex');
-    }
-    function closeRawModal() {
-      document.getElementById('raw-modal').classList.remove('flex');
-      document.getElementById('raw-modal').classList.add('hidden');
-    }
-    document.addEventListener('DOMContentLoaded', () => {
-      const rawClose = document.getElementById('raw-close');
-      if (rawClose) rawClose.addEventListener('click', closeRawModal);
-    });
-
-    // Initialize
+    // Ensure page initializes after DOM ready
     document.addEventListener('DOMContentLoaded', () => {
       renderHosts();
     });
+
   </script>
 </body>
 </html>

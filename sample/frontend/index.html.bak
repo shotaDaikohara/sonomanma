@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>StayConnect — 宿主一覧 (Sample)</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <style>
+      .host-card { transition: all .25s ease; }
+      .host-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,.12); }
+      .match-rate { background: linear-gradient(135deg,#10b981 0%,#059669 100%); color:#fff; padding:4px 8px; border-radius:999px; font-size:.75rem; }
+      .match-reason { background: linear-gradient(135deg,#f093fb 0%,#f5576c 100%); color:#fff; padding:8px 12px; border-radius:8px; font-size:.8rem; }
+      .calendar-day { width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%; }
+      .calendar-day.available { background:#10b981;color:#fff; }
+      .calendar-day.partially-available { background:#f59e0b;color:#fff; }
+
+      /* Inline AI (crystal) panel styles */
+      .ai-panel { transition: all .18s ease; }
+      /* collapsed state: show as a thin bar (one-line) */
+      .ai-panel.collapsed { max-height:48px; overflow:hidden; }
+      /* hide the chips (age/gender/location) when collapsed to keep the bar minimal; keep toggle visible */
+      .ai-panel.collapsed .ai-chips { display: none; }
+      /* show a clamped single-line explanation when collapsed to provide immediate context */
+      .ai-panel.collapsed .ai-explanation { display: block; max-height:36px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      /* hide interactive icebreaker buttons when collapsed to keep UI compact */
+      .ai-panel.collapsed .ai-icebreakers { display: none; }
+      /* skeleton for loading state */
+      .ai-skeleton { display:flex; gap:8px; align-items:center; }
+      .ai-skel-rect { background: linear-gradient(90deg,#e6f0ff,#f8fbff); border-radius:4px; height:12px; }
+      .ai-skel-progress { width:88px; }
+      .ai-skel-chip { width:64px; height:20px; }
+      .ai-skel-expl { flex:1; height:12px; }
+
+      /* NEW: axis / weights / icebreakers styles */
+      .ai-axes { display:flex; gap:8px; align-items:center; }
+      .ai-axis { flex:1; display:flex; flex-direction:column; gap:6px; }
+      .ai-axis .hdr { display:flex; justify-content:space-between; align-items:center; }
+      .ai-axis .label { font-size:10px; color:#065f46; font-weight:600; }
+      .ai-axis-bar { background:#e6f0ff; height:8px; border-radius:999px; overflow:hidden; }
+      .ai-axis-fill { height:100%; background:linear-gradient(90deg,#60a5fa,#3b82f6); width:0%; }
+      .ai-axis-val { font-size:11px; color:#1e3a8a; text-align:right; min-width:38px; }
+      .ai-weights { font-size:11px; color:#475569; }
+      .ai-icebreakers { display:flex; gap:6px; flex-wrap:wrap; }
+      .ai-icebreakers .ice-btn { background:#fff; border:1px solid #e5e7eb; padding:6px 8px; border-radius:6px; font-size:12px; cursor:pointer; }
+      .ai-icebreakers .ice-btn:hover { background:#f8fafc; }
+
+    /* Stabilize card layout to prevent width changes when content updates */
+    .host-card { box-sizing: border-box; width: 100%; }
+    /* allow flex children to shrink so ellipsis works inside flex containers */
+    .host-card .flex-1 { min-width: 0; }
+    /* Truncate long host names so header layout stays stable */
+    .host-card .font-semibold { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Reserve space for the controls to avoid shifts when numbers/text change */
+    .host-card .match-rate { min-width: 56px; display:inline-block; text-align: right; }
+    .update-match-btn { min-width: 72px; }
+    .show-raw-btn { min-width: 48px; }
+    /* Ensure ai-panel does not change card width */
+    .ai-panel { width: 100%; box-sizing: border-box; }
+    /* When panel is collapsed, hide all content except the header to avoid "peek-through" */
+    .ai-panel { transition: max-height 220ms ease, opacity 200ms ease; }
+    .ai-panel.collapsed { max-height: 56px; overflow: hidden; }
+    /* hide everything but header when collapsed */
+    .ai-panel.collapsed > :not(.ai-header) { display: none !important; }
+    /* ensure header remains interactive */
+    .ai-panel .ai-header { z-index: 2; }
+    /* animate children when expanding */
+    .ai-panel > * { transition: opacity 180ms ease, transform 180ms ease; }
+    .ai-panel.collapsed > .ai-header { opacity: 1; transform: none; }
+    .ai-panel:not(.collapsed) { max-height: 2000px; }
+
+      /* Explanation highlight used to draw attention briefly after an update */
+      .ai-explanation.explain-highlight {
+        background: linear-gradient(90deg, rgba(99,102,241,0.06), rgba(59,130,246,0.04));
+        border-left: 4px solid #2563eb;
+        padding: 8px;
+        border-radius: 6px;
+        transition: box-shadow .25s ease, transform .15s ease, background .25s ease;
+        box-shadow: 0 6px 18px rgba(37,99,235,0.08);
+      }
+      /* small scale 'pop' while highlighted */
+      .ai-explanation.explain-highlight.pop { transform: translateY(-2px); }
+
+      /* New: boxed explanation base style to improve readability */
+      .ai-explanation {
+        background: #ffffff;
+        border: 1px solid rgba(15,23,42,0.06); /* subtle border */
+        padding: 10px 12px;
+        border-radius: 8px;
+        box-shadow: 0 6px 18px rgba(2,6,23,0.03);
+        white-space: pre-wrap; /* preserve line breaks from model */
+        word-break: break-word;
+        line-height: 1.45;
+        margin-top: 6px;
+      }
+
+      /* Keep compact single-line preview when panel is collapsed */
+      .ai-panel.collapsed .ai-explanation {
+        display: block;
+        max-height: 40px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding-left: 0; /* avoid large left padding for trimmed preview */
+        border: none; /* keep bar minimal when collapsed */
+        box-shadow: none;
+      }
+
+      /* When explanation is empty, make sure the box doesn't visually dominate */
+      .ai-explanation:empty { display: none; }
+
+      /* AI panel footer (最終更新) aligned to bottom-right */
+      .ai-footer { display: flex; justify-content: flex-end; font-size: 12px; color: #64748b; margin-top: 8px; }
+
+      /* Calendar visual improvements (CSS-only) */
+      /* Emphasize weekday header (the first 7 children injected by JS) */
+      #modal-calendar > div:nth-child(-n+7) {
+        font-weight: 700;
+        color: #374151; /* gray-700 */
+        font-size: 0.75rem;
+        padding: 6px 0;
+        opacity: 0.95;
+      }
+
+      /* Ensure the calendar grid has consistent spacing and alignment */
+      #modal-calendar {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+        align-items: center;
+      }
+
+      /* Larger, touch-friendly day buttons with subtle hover */
+      .calendar-day {
+        width: 36px;
+        height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease, color .12s ease;
+        position: relative; /* for today badge */
+        margin: 4px auto;
+        background: transparent;
+        color: #111827; /* gray-900 */
+        border: 1px solid transparent;
+      }
+      .calendar-day:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(2,6,23,0.06); }
+
+      /* Available / partial availability */
+      .calendar-day.available { background: linear-gradient(180deg,#10b981,#059669); color: #fff; border-color: rgba(5,150,105,0.16); }
+      .calendar-day.partially-available { background: linear-gradient(180deg,#f59e0b,#d97706); color:#fff; border-color: rgba(217,119,6,0.12); }
+
+      /* Disabled / not available look */
+      .calendar-day.disabled { color: #9ca3af; background: transparent; cursor: default; transform: none; box-shadow: none; }
+
+      /* Selected range visuals (if JS adds these classes) */
+      .calendar-day.in-range { background: rgba(96,165,250,0.18); color: #1e3a8a; }
+      .calendar-day.selected, .calendar-day.start, .calendar-day.end { background: linear-gradient(180deg,#2563eb,#1e40af); color: #fff; box-shadow: 0 8px 18px rgba(37,99,235,0.12); }
+
+      /* Distinct border for today's date */
+      .calendar-day.today { border: 2px solid rgba(59,130,246,0.16); box-shadow: inset 0 0 0 2px rgba(59,130,246,0.03); }
+      .calendar-day.today::after {
+        content: '今';
+        position: absolute;
+        top: 3px;
+        right: 4px;
+        font-size: 9px;
+        padding: 1px 4px;
+        border-radius: 8px;
+        color: #1e40af;
+        background: #fff;
+        border: 1px solid rgba(30,64,175,0.08);
+      }
+
+      /* Small caption for selection below calendar (ensure readability) */
+      #selected-dates { font-weight: 600; color: #0f172a; }
+
+      /* Accessibility / focus ring for keyboard users */
+      .calendar-day:focus { outline: 3px solid rgba(59,130,246,0.12); outline-offset: 2px; }
+
+      /* Responsive adjustments */
+      @media (max-width: 640px) {
+        .calendar-day { width: 30px; height: 30px; font-size: 12px; }
+        #modal-calendar { gap: 4px; }
+      }
+
+      /* Minor tweak: ensure weekday headers don't look like calendar squares on small screens */
+      @media (max-width: 420px) {
+        #modal-calendar > div:nth-child(-n+7) { font-size: 0.68rem; padding: 4px 0; }
+      }
+
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <header class="bg-white border-b shadow-sm">
+    <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center">
+        <i class="fas fa-home text-2xl text-blue-600 mr-2"></i>
+        <h1 class="text-lg font-bold">StayConnect</h1>
+      </div>
+      <div class="flex items-center space-x-3">
+        <i class="fas fa-search text-gray-600"></i>
+        <i class="fas fa-user-circle text-gray-600"></i>
+        <button id="edit-prompt-btn" class="ml-3 text-sm px-2 py-1 border rounded">プロンプト編集</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-2xl mx-auto p-4">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-semibold">宿主一覧</h2>
+      <span class="text-sm text-gray-600">マッチ率順</span>
+    </div>
+
+    <div id="hosts" class="space-y-4">
+      <!-- Host cards will be rendered here by JS -->
+    </div>
+  </main>
+
+  <!-- Modal -->
+  <div id="host-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white max-w-lg w-full mx-4 rounded-lg overflow-y-auto max-h-[80vh]">
+      <div class="p-4 border-b flex items-center justify-between">
+        <div>
+          <h3 id="modal-name" class="font-semibold text-lg">宿主名</h3>
+          <p id="modal-location" class="text-sm text-gray-600">場所</p>
+        </div>
+        <button id="modal-close" class="text-gray-600"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="p-4 space-y-4">
+        <div>
+          <h4 class="font-semibold mb-2">カレンダー</h4>
+          <div class="flex items-center justify-between mb-2">
+            <button id="cal-prev" class="px-2 py-1 rounded hover:bg-gray-100">‹</button>
+            <div id="cal-month" class="font-semibold">2025年9月</div>
+            <button id="cal-next" class="px-2 py-1 rounded hover:bg-gray-100">›</button>
+          </div>
+          <div id="modal-calendar" class="grid grid-cols-7 gap-1 text-center text-xs">
+            <!-- days injected by JS -->
+          </div>
+          <div class="text-sm text-gray-600 mt-2">選択: <span id="selected-dates">未選択</span></div>
+        </div>
+        <div>
+          <h4 class="font-semibold mb-2">自己紹介</h4>
+          <p id="modal-bio" class="text-sm text-gray-700">ここにホストの自己紹介が入ります。</p>
+        </div>
+        <div class="flex space-x-2">
+          <button id="friend-btn" class="flex-1 bg-blue-500 text-white py-2 rounded-lg">友達申請</button>
+          <button id="fav-btn" class="px-4 py-2 border rounded-lg"><i id="fav-icon" class="far fa-heart"></i> お気に入り</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prompt Editor Modal -->
+  <div id="prompt-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-60">
+    <div class="bg-white max-w-lg w-full mx-4 rounded-lg overflow-y-auto max-h-[80vh] p-4">
+      <h3 class="font-semibold mb-2">AIプロンプトテンプレート編集</h3>
+      <p class="text-sm text-gray-600 mb-2">システムプロンプト（高優先・モデルへの動作規則）とユーザープロンプト（実際の出力指示）を分けて編集できます。プレースホルダ: {{student.gender}}, {{student.age}}, {{student.location}}, {{host.gender}}, {{host.age}}, {{host.location}}</p>
+      <label class="text-xs font-semibold">システムプロンプト</label>
+      <textarea id="system-prompt-textarea" class="w-full h-24 border rounded p-2 mb-3"></textarea>
+      <label class="text-xs font-semibold">ユーザープロンプト（テンプレート）</label>
+      <textarea id="prompt-textarea" class="w-full h-36 border rounded p-2"></textarea>
+      <div class="flex justify-end mt-3 space-x-2">
+    "value": number,
+    "commonground": number
+  },
+  "icebreakers": ["string"],       // 最大3つの短いアイスブレイク用フレーズ（日本語）
+  "explanation": "string"          // 短い人間向け説明（日本語）
+}
+
+有効なJSONを生成できない場合でも、ベストエフォートで回答し、JSONオブジェクトを優先してください。余計なコメントは不要です。回答は必ず日本語で行ってください。`;
+
+    function buildPrompt(host, mode = 'match') {
+      // Inject structured student and host fields into the user prompt template (no duplicated context)
+      let s = promptTemplate
+        .replaceAll('{{student.gender}}', studentInfo.gender)
+        .replaceAll('{{student.age}}', String(studentInfo.age))
+        .replaceAll('{{student.location}}', studentInfo.location)
+        .replaceAll('{{student.name}}', studentInfo.name || '')
+        .replaceAll('{{student.self_pr}}', studentInfo.self_pr || '')
+        .replaceAll('{{student.purpose}}', studentInfo.purpose || '')
+        .replaceAll('{{host.gender}}', host.gender || '')
+        .replaceAll('{{host.age}}', String(host.age || 0))
+        .replaceAll('{{host.location}}', host.location || '');
+      // additional host fields
+      s = s.replaceAll('{{host.name}}', host.name || '')
+           .replaceAll('{{host.bio}}', host.bio || '')
+           .replaceAll('{{host.offers}}', Array.isArray(host.offers) ? host.offers.join(', ') : (host.offers || ''))
+           .replaceAll('{{host.motivation}}', host.motivation || '')
+           .replaceAll('{{host.free_text}}', host.free_text || '')
+           .replaceAll('{{host.tags}}', Array.isArray(host.tags) ? host.tags.join(', ') : (host.tags || ''));
+      return s;
+    }
+
+    // Build system prompt with injected student/host fields so system-level instructions can reference them
+    function buildSystemPrompt(host) {
+      let s = systemPrompt || '';
+      s = s.replaceAll('{{student.gender}}', studentInfo.gender)
+        .replaceAll('{{student.age}}', String(studentInfo.age))
+        .replaceAll('{{student.location}}', studentInfo.location)
+        .replaceAll('{{student.name}}', studentInfo.name || '')
+        .replaceAll('{{student.self_pr}}', studentInfo.self_pr || '')
+        .replaceAll('{{student.purpose}}', studentInfo.purpose || '')
+        .replaceAll('{{host.gender}}', host.gender || '')
+        .replaceAll('{{host.age}}', String(host.age || 0))
+        .replaceAll('{{host.location}}', host.location || '');
+      // Attach compact JSON context only in system prompt to avoid duplication
+      s += '\n\n<!-- CONTEXT_START -->\n' + structuredContext(host) + '\n<!-- CONTEXT_END -->';
+      return s;
+    }
+
+    // Return a compact JSON block with student and host structured fields
+    function structuredContext(host) {
+      const ctx = {
+        student: {
+          name: studentInfo.name || null,
+          gender: studentInfo.gender || null,
+          age: Number(studentInfo.age || 0),
+          location: studentInfo.location || null,
+          self_pr: studentInfo.self_pr || null,
+          purpose: studentInfo.purpose || null
+        },
+        host: {
+          id: host.id || null,
+          name: host.name || null,
+          gender: host.gender || null,
+          age: Number(host.age || 0),
+          location: host.location || null,
+          bio: host.bio || null,
+          free_text: host.free_text || null,
+          tags: host.tags || null,
+          offers: host.offers || null,
+          motivation: host.motivation || null
+        }
+      };
+      return JSON.stringify(ctx, null, 2);
+    }
+
+    function renderHosts() {
+      const container = document.getElementById('hosts');
+      // clear safely
+      while (container.firstChild) container.removeChild(container.firstChild);
+
+      hosts.sort((a,b) => b.match - a.match).forEach(h => {
+        const el = document.createElement('div');
+        el.className = 'host-card bg-white rounded-lg p-4';
+        el.setAttribute('data-id', h.id);
+
+        // outer flex
+        const outer = document.createElement('div');
+        outer.className = 'flex items-start space-x-3';
+        el.appendChild(outer);
+
+        // avatar
+        const avatar = document.createElement('div');
+        avatar.className = 'w-12 h-12 rounded-full bg-gradient-to-r from-green-400 to-blue-500 flex items-center justify-center text-white font-bold';
+        outer.appendChild(avatar);
+
+        // main content
+        const main = document.createElement('div');
+        main.className = 'flex-1';
+        outer.appendChild(main);
+
+        // header row
+        const headerRow = document.createElement('div');
+        headerRow.className = 'flex items-center justify-between mb-2';
+        main.appendChild(headerRow);
+
+        const nameH3 = document.createElement('h3');
+        nameH3.className = 'font-semibold';
+        headerRow.appendChild(nameH3);
+
+        const controls = document.createElement('div');
+        controls.className = 'flex items-center space-x-2';
+        headerRow.appendChild(controls);
+
+        const matchSpan = document.createElement('span');
+        matchSpan.className = 'match-rate';
+        controls.appendChild(matchSpan);
+
+        const ratingWrap = document.createElement('div');
+        ratingWrap.className = 'flex items-center text-yellow-400 text-sm';
+        const starI = document.createElement('i'); starI.className = 'fas fa-star mr-1';
+        const ratingVal = document.createElement('span');
+        ratingWrap.appendChild(starI);
+        ratingWrap.appendChild(ratingVal);
+        controls.appendChild(ratingWrap);
+
+        const updateBtn = document.createElement('button');
+        updateBtn.className = 'update-match-btn ml-2 bg-indigo-500 text-white px-2 py-1 rounded text-sm';
+        updateBtn.type = 'button';
+        updateBtn.textContent = '更新';
+        controls.appendChild(updateBtn);
+
+        const showBtn = document.createElement('button');
+        showBtn.className = 'show-raw-btn ml-2 text-xs text-gray-500';
+        showBtn.type = 'button';
+        showBtn.textContent = '全表示';
+        controls.appendChild(showBtn);
+
+        // location
+        const locP = document.createElement('p');
+        locP.className = 'text-sm text-gray-600 mb-2';
+        main.appendChild(locP);
+
+        // gender / age row
+        const gaRow = document.createElement('div');
+        gaRow.className = 'flex items-center space-x-2 text-sm text-gray-600 mb-2';
+        main.appendChild(gaRow);
+
+        const genderSpan = document.createElement('span');
+        genderSpan.className = 'bg-gray-100 text-gray-800 px-2 py-1 rounded';
+        gaRow.appendChild(genderSpan);
+
+        const ageSpan = document.createElement('span');
+        gaRow.appendChild(ageSpan);
+
+        // match reason
+        const mb3 = document.createElement('div');
+        mb3.className = 'mb-3';
+        const reasonDiv = document.createElement('div');
+        reasonDiv.className = 'match-reason';
+        mb3.appendChild(reasonDiv);
+        main.appendChild(mb3);
+
+        // tags container
+        const tagContainer = document.createElement('div');
+        tagContainer.className = 'flex space-x-2 text-xs';
+        main.appendChild(tagContainer);
+
+        // inline AI panel
+        const panel = document.createElement('div');
+        panel.id = `ai-panel-${h.id}`;
+        panel.className = 'ai-panel mt-2 bg-blue-50 border border-blue-100 rounded p-3 collapsed';
+        panel.setAttribute('data-ai-panel', '');
+        panel.setAttribute('role', 'region');
+        panel.setAttribute('aria-labelledby', `ai-toggle-${h.id}`);
+        panel.setAttribute('aria-hidden', 'false');
+        main.appendChild(panel);
+
+        // ai header
+        const aiHeader = document.createElement('div'); aiHeader.className = 'ai-header flex items-center justify-between';
+        const left = document.createElement('div'); left.className = 'flex items-center space-x-3';
+        const aiTitle = document.createElement('div'); aiTitle.className = 'ai-title text-xs text-blue-600 font-medium mr-2'; aiTitle.textContent = 'AIレコメンド';
+        const aiProgress = document.createElement('div'); aiProgress.className = 'ai-progress w-36 h-2 bg-blue-100 rounded overflow-hidden';
+        const aiFill = document.createElement('div'); aiFill.className = 'ai-progress-fill bg-blue-500 h-2 rounded'; aiFill.style.width = '0%'; aiProgress.appendChild(aiFill);
+        const aiPercent = document.createElement('div'); aiPercent.className = 'ai-percent text-xs text-blue-700 font-medium ml-2'; aiPercent.textContent = '--%';
+        left.appendChild(aiTitle); left.appendChild(aiProgress); left.appendChild(aiPercent);
+        aiHeader.appendChild(left);
+        const right = document.createElement('div'); right.className = 'flex items-center space-x-2';
+        const aiToggle = document.createElement('button'); aiToggle.id = `ai-toggle-${h.id}`; aiToggle.className = 'ai-toggle-btn text-sm text-blue-600'; aiToggle.type = 'button'; aiToggle.setAttribute('aria-expanded','false'); aiToggle.setAttribute('aria-controls', `ai-panel-${h.id}`); aiToggle.textContent = '展開';
+        right.appendChild(aiToggle); aiHeader.appendChild(right);
+        panel.appendChild(aiHeader);
+
+        // axes
+        const axes = document.createElement('div'); axes.className = 'ai-axes mt-2';
+        function makeAxis(labelText, fillClass, valClass) {
+          const axis = document.createElement('div'); axis.className = 'ai-axis';
+          const hdr = document.createElement('div'); hdr.className = 'hdr';
+          const lbl = document.createElement('div'); lbl.className = 'label'; lbl.textContent = labelText; hdr.appendChild(lbl);
+          const val = document.createElement('div'); val.className = `ai-axis-val ${valClass}`; val.textContent = '--'; hdr.appendChild(val);
+          axis.appendChild(hdr);
+          const bar = document.createElement('div'); bar.className = 'ai-axis-bar';
+          const f = document.createElement('div'); f.className = `ai-axis-fill ${fillClass}`; f.style.width = '0%'; bar.appendChild(f); axis.appendChild(bar);
+          return axis;
+        }
+        axes.appendChild(makeAxis('EMPATHY','ai-empathy-fill','ai-empathy-val'));
+        axes.appendChild(makeAxis('VALUE','ai-value-fill','ai-value-val'));
+        axes.appendChild(makeAxis('COMMON','ai-common-fill','ai-common-val'));
+        panel.appendChild(axes);
+
+        // chips / weights / icebreakers / explanation placeholders
+        const chipsEl = document.createElement('div'); chipsEl.className = 'ai-chips mt-2 flex space-x-2 text-xs'; chipsEl.setAttribute('aria-hidden','true'); panel.appendChild(chipsEl);
+        const weightsEl = document.createElement('div'); weightsEl.className = 'ai-weights mt-2 text-xs text-gray-600'; panel.appendChild(weightsEl);
+        // Show explanation header and body (レコメンド根拠) before icebreakers
+        const explHeaderEl = document.createElement('div');
+        explHeaderEl.className = 'font-semibold text-xs mb-1 text-blue-700 w-full';
+        explHeaderEl.innerText = 'レコメンド根拠';
+        panel.appendChild(explHeaderEl);
+        const explEl = document.createElement('div');
+        explEl.className = 'ai-explanation text-sm text-gray-700 mt-1';
+        explEl.setAttribute('data-explain','');
+        explEl.setAttribute('aria-hidden', 'true');
+        panel.appendChild(explEl);
+        const iceEl = document.createElement('div'); iceEl.className = 'ai-icebreakers mt-2'; panel.appendChild(iceEl);
+
+        // If not already present, create AI footer outside the blue panel so it appears below the box
+        const aiFooter = document.createElement('div');
+        aiFooter.className = 'ai-footer text-xs text-gray-500 mt-2';
+        aiFooter.textContent = '最終更新: -';
+        main.appendChild(aiFooter);
+
+        // append to container
+        container.appendChild(el);
+
+        // Sanitize and populate dynamic text nodes
+        try {
+          nameH3.textContent = h.name || '';
+          avatar.textContent = (h.name || '').split(' ')[0] || '';
+          matchSpan.textContent = `${h.match}%マッチ`;
+          ratingVal.textContent = String(h.rating ?? '');
+          locP.textContent = h.location || '';
+          const genderText = h.gender ? (h.gender === 'male' ? '男性' : (h.gender === 'female' ? '女性' : h.gender)) : '不明';
+          genderSpan.textContent = genderText;
+          ageSpan.textContent = h.age ? `${h.age}歳` : '年齢不明';
+          reasonDiv.textContent = (h.tags && h.tags.length) ? (h.tags.slice(0,2).join(' / ') + ' による高い親和性が確認されています。') : '';
+          // rebuild tags
+          while (tagContainer.firstChild) tagContainer.removeChild(tagContainer.firstChild);
+          if (Array.isArray(h.tags)) {
+            for (const t of h.tags) {
+              const s = document.createElement('span');
+              s.className = 'bg-gray-100 text-gray-800 px-2 py-1 rounded';
+              s.textContent = t;
+              tagContainer.appendChild(s);
+            }
+          }
+          const aiFooterNode = el.querySelector('.ai-footer');
+          if (aiFooterNode) aiFooterNode.textContent = h.lastUpdated ? `最終更新: ${h.lastUpdated}` : '最終更新: -';
+          // populate explanation body (keep header separate)
+          while (explEl.firstChild) explEl.removeChild(explEl.firstChild);
+          const explBodyInit = document.createElement('div');
+          explBodyInit.className = 'ai-expl-body text-sm text-gray-700';
+          explBodyInit.textContent = h.explanation || '';
+          explEl.appendChild(explBodyInit);
+        } catch (err) { /* ignore */ }
+
+        // event handlers
+        el.addEventListener('click', (e) => { if (e.target.closest('.update-match-btn')) return; openModal(h); });
+        updateBtn.addEventListener('click', async (ev) => { ev.stopPropagation(); await updateMatch(h.id); });
+        showBtn.addEventListener('click', (ev) => { ev.stopPropagation(); const modelHost = hosts.find(x=>x.id===h.id) || null; const raw = (modelHost && (modelHost.raw_sanitized || modelHost.raw)) || el.dataset.rawReason || '-- 応答なし --'; openRawModal(raw); });
+
+        aiToggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const panelNode = document.getElementById(`ai-panel-${h.id}`);
+          const expanded = aiToggle.getAttribute('aria-expanded') === 'true';
+          panelNode.classList.toggle('collapsed');
+          aiToggle.setAttribute('aria-expanded', String(!expanded));
+          panelNode.querySelector('.ai-chips').setAttribute('aria-hidden', expanded);
+          const ex = panelNode.querySelector('.ai-explanation'); if (ex) ex.setAttribute('aria-hidden', expanded);
+          aiToggle.innerText = panelNode.classList.contains('collapsed') ? '展開' : '閉じる';
+        });
+
+        panel.addEventListener('click', (e) => { e.stopPropagation(); if (e.target.closest('.update-match-btn') || e.target.closest('.show-raw-btn') || e.target.closest('.ai-toggle-btn')) return; const isCollapsed = panel.classList.contains('collapsed'); if (isCollapsed && aiToggle) aiToggle.click(); });
+
+        // populate inline AI content
+        try { renderInlinePanel(h, el); } catch(e) { /* ignore */ }
+      });
+    }
+
+    // Move a single host card DOM node to its correct position according to hosts[].match
+    function resortHostCard(host) {
+      const container = document.getElementById('hosts');
+      if (!container) return;
+      const card = container.querySelector(`.host-card[data-id="${host.id}"]`);
+      if (!card) return;
+      // Compute desired order from hosts array
+      const sorted = hosts.slice().sort((a,b) => b.match - a.match);
+      const newIndex = sorted.findIndex(h => h.id === host.id);
+      if (newIndex === -1) return;
+      // Find the DOM node that should come after this card
+      const nextHost = sorted[newIndex + 1];
+      if (nextHost) {
+        const nextCard = container.querySelector(`.host-card[data-id="${nextHost.id}"]`);
+        if (nextCard) {
+          // If card already immediately before nextCard, nothing to do
+          if (card.nextElementSibling === nextCard) return;
+          container.insertBefore(card, nextCard);
+          return;
+        }
+      }
+      // Otherwise append to the end
+      container.appendChild(card);
+    }
+
+    // Small helper: deep search object for any of candidate keys
+    function findDeepValue(obj, candidates = []) {
+      if (!obj || typeof obj !== 'object') return undefined;
+      for (const k of candidates) {
+        if (Object.prototype.hasOwnProperty.call(obj, k)) return obj[k];
+      }
+      for (const key of Object.keys(obj)) {
+        const val = obj[key];
+        if (val && typeof val === 'object') {
+          const found = findDeepValue(val, candidates);
+          if (found !== undefined) return found;
+        }
+      }
+      return undefined;
+    }
+
+    // Compatibility wrapper: single-key search
+    function findDeepKey(obj, key) { return findDeepValue(obj, [key]); }
+
+    // Parse numbers or percent-like strings into numeric value, return null on failure
+    function parseNumberLike(v) {
+      if (v == null) return null;
+      if (typeof v === 'number') return v;
+      const s = String(v).trim();
+      // percent like "85%"
+      const m1 = s.match(/(\d{1,3}(?:\.\d+)?)\s*%/);
+      if (m1) return Number(m1[1]);
+      // plain number anywhere in text
+      const m2 = s.match(/(-?\d+(?:\.\d+)?)/);
+      if (m2) return Number(m2[1]);
+      return null;
+    }
+
+    // Small sanitizer: strip any HTML tags from a string (simple, fast fallback)
+    function sanitizeText(s) {
+      if (s == null) return '';
+      return String(s).replace(/<[^>]*>/g, '');
+    }
+
+    // Render inline AI content into a card's ai-panel
+    function renderInlinePanel(host, card) {
+      if (!card) return;
+      const panel = card.querySelector('[data-ai-panel]');
+      if (!panel) return; // defensive: nothing to render into
+
+      // Ensure we have an object for AI payload. Attempt to parse stringified JSON or
+      // extract an inner JSON block from host.raw if necessary.
+      let ai = host.ai || {};
+      if (typeof ai === 'string') {
+        try {
+          ai = JSON.parse(ai);
+        } catch (e) {
+          // fallback: try to extract a balanced JSON object from raw text
+          const raw = host.raw || ai || '';
+          const objText = extractBalancedObjectText(String(raw));
+          if (objText) {
+            try { ai = JSON.parse(objText); } catch (e2) { ai = {}; }
+          } else {
+            ai = {};
+          }
+        }
+      }
+
+      // Helper to try many candidate keys and nested containers
+      function scoreFromCandidates(obj, candidates) {
+        if (!obj || typeof obj !== 'object') return null;
+        for (const k of candidates) {
+          // direct deep search by key name
+          const found = findDeepKey(obj, k);
+          const num = parseNumberLike(found);
+          if (num != null) return num;
+        }
+        // check common nested containers
+        if (obj.score_components) {
+          for (const k of candidates) {
+            if (Object.prototype.hasOwnProperty.call(obj.score_components, k)) {
+              const num = parseNumberLike(obj.score_components[k]);
+              if (num != null) return num;
+            }
+          }
+        }
+        if (obj.scores) {
+          for (const k of candidates) {
+            if (Object.prototype.hasOwnProperty.call(obj.scores, k)) {
+              const num = parseNumberLike(obj.scores[k]);
+              if (num != null) return num;
+            }
+          }
+        }
+        if (obj.scoring_weights) {
+          for (const k of candidates) {
+            if (Object.prototype.hasOwnProperty.call(obj.scoring_weights, k)) {
+              const num = parseNumberLike(obj.scoring_weights[k]);
+              if (num != null) return num;
+            }
+          }
+        }
+        return null;
+      }
+
+      // Candidate key names for each axis
+      const empathyKeys = ['empathy_score','empathy','empathyScore','empathy_percent','empathy_pct'];
+      const valueKeys = ['value_score','value','valueScore','value_percent','value_pct'];
+      const commonKeys = ['commonground_score','commonground','common_ground_score','common','common_score','commonScore'];
+
+      const eScore = scoreFromCandidates(ai, empathyKeys);
+      const vScore = scoreFromCandidates(ai, valueKeys);
+      const cScore = scoreFromCandidates(ai, commonKeys);
+
+      // If not found, also check top-level numeric fields often used
+      function fallbackAvg(...vals) {
+        const nums = vals.map(x => (x == null ? null : Number(x))).filter(x => !Number.isNaN(x) && x != null);
+        if (nums.length === 0) return null;
+        return Math.round(nums.reduce((a,b)=>a+b,0)/nums.length);
+      }
+
+      // Compute a display overall percent when host.match is not set
+      const computedOverall = (eScore != null && vScore != null && cScore != null) ? Math.round((eScore + vScore + cScore)/3) : fallbackAvg(eScore, vScore, cScore);
+
+      // progress bar & percent label
+      const fill = panel.querySelector('.ai-progress-fill');
+      const percentEl = panel.querySelector('.ai-percent');
+      const showActual = !!host.lastUpdated || !!host.ai;
+      const percentToShow = (showActual && host.match != null) ? host.match : (showActual && computedOverall != null ? computedOverall : null);
+      if (fill) fill.style.width = (percentToShow != null ? percentToShow : 0) + '%';
+      if (percentEl) {
+        if (host.loading) percentEl.innerText = '--%';
+        else percentEl.innerText = (percentToShow != null ? percentToShow + '%' : '--%');
+      }
+
+      // AXES: populate empathy/value/common mini-bars and numeric values
+      const empathyFill = panel.querySelector('.ai-empathy-fill');
+      const valueFill = panel.querySelector('.ai-value-fill');
+      const commonFill = panel.querySelector('.ai-common-fill');
+      const empathyVal = panel.querySelector('.ai-empathy-val');
+      const valueVal = panel.querySelector('.ai-value-val');
+      const commonVal = panel.querySelector('.ai-common-val');
+
+      function clamp(n) { return Math.max(0, Math.min(100, Math.round(n))); }
+      const eDisp = (eScore != null ? clamp(eScore) : null);
+      const vDisp = (vScore != null ? clamp(vScore) : null);
+      const cDisp = (cScore != null ? clamp(cScore) : null);
+
+      if (empathyFill) empathyFill.style.width = (eDisp != null ? eDisp : 0) + '%';
+      if (valueFill) valueFill.style.width = (vDisp != null ? vDisp : 0) + '%';
+      if (commonFill) commonFill.style.width = (cDisp != null ? cDisp : 0) + '%';
+      if (empathyVal) empathyVal.innerText = (eDisp != null ? eDisp + '%' : '情報不足');
+      if (valueVal) valueVal.innerText = (vDisp != null ? vDisp + '%' : '情報不足');
+      if (commonVal) commonVal.innerText = (cDisp != null ? cDisp + '%' : '情報不足');
+
+      // chips (always render three chips for age/gender/location)
+      const chips = panel.querySelector('.ai-chips');
+      if (chips) {
+        // clear safely
+        while (chips.firstChild) chips.removeChild(chips.firstChild);
+        const comps = (ai && ai.score_components) ? ai.score_components : {};
+        const age = comps.age_score ?? (findDeepKey(ai || {}, 'age_score') ?? '--');
+        const gender = comps.gender_score ?? (findDeepKey(ai || {}, 'gender_score') ?? '--');
+        const location = comps.location_score ?? (findDeepKey(ai || {}, 'location_score') ?? '--');
+        const items = [{k:'年齢',v:age},{k:'性別',v:gender},{k:'ロケーション',v:location}];
+
+        // format a value as a percent when numeric; otherwise return a fallback string
+        function formatPct(v) {
+          const n = parseNumberLike(v);
+          if (n != null) return `${Math.round(n)}%`;
+          if (v == null || v === '') return '--';
+          return String(v);
+        }
+
+        for (const it of items) {
+          const chip = document.createElement('span');
+          chip.className = 'bg-white text-blue-700 px-2 py-1 rounded shadow text-xs';
+          chip.innerText = `${it.k}: ${formatPct(it.v)}`;
+          chips.appendChild(chip);
+        }
+      }
+
+      // scoring weights display (unchanged behavior)
+      const weightsEl = panel.querySelector('.ai-weights');
+      if (weightsEl) {
+        // Do not display internal scoring weights in the UI — clear any text.
+        weightsEl.innerText = '';
+      }
+
+      // explanation body (header is a separate DOM node created at render time)
+      const expl = panel.querySelector('.ai-explanation');
+      if (expl) {
+        // clear existing body content
+        while (expl.firstChild) expl.removeChild(expl.firstChild);
+        if (host.loading) {
+          const sk = document.createElement('div');
+          sk.className = 'ai-skeleton';
+          const rect = document.createElement('div');
+          rect.className = 'ai-skel-rect ai-skel-expl';
+          sk.appendChild(rect);
+          expl.appendChild(sk);
+        } else {
+          const explText = host.explanation || ai.explanation || findDeepKey(ai || {}, 'explanation') || '';
+          const explBody = document.createElement('div');
+          explBody.className = 'ai-expl-body text-sm text-gray-700';
+          explBody.textContent = explText || '';
+          expl.appendChild(explBody);
+        }
+      }
+
+      // icebreakers
+      const iceEl = panel.querySelector('.ai-icebreakers');
+      if (iceEl) {
+        // Clear previous content safely
+        while (iceEl.firstChild) iceEl.removeChild(iceEl.firstChild);
+        const ices = (ai && Array.isArray(ai.icebreakers)) ? ai.icebreakers : (findDeepKey(ai || {}, 'icebreakers') || []);
+        if (Array.isArray(ices) && ices.length > 0) {
+          // Add a small header to make the section clearer
+          const hdr = document.createElement('div');
+          hdr.className = 'font-semibold text-xs mb-1 text-blue-700 w-full';
+          hdr.innerText = 'アイスブレイク候補';
+          iceEl.appendChild(hdr);
+          // group buttons in a row container so they appear on the next line
+          const btnRow = document.createElement('div');
+          btnRow.className = 'flex gap-2 flex-wrap w-full';
+          for (const t of ices.slice(0,3)) {
+            const btn = document.createElement('button');
+            btn.className = 'ice-btn';
+            btn.type = 'button';
+            btn.innerText = t;
+            btn.title = 'コピー';
+            btn.addEventListener('click', (ev) => { ev.stopPropagation(); try { navigator.clipboard.writeText(t); btn.innerText = 'コピー済み'; setTimeout(()=>{ btn.innerText = t; },1000); } catch(e){ /* ignore */ } });
+            btnRow.appendChild(btn);
+          }
+          iceEl.appendChild(btnRow);
+        } else {
+          const p = document.createElement('div');
+          p.className = 'text-xs text-gray-500';
+          p.innerText = 'アイスブレイク候補はありません';
+          iceEl.appendChild(p);
+        }
+      }
+
+      // if loading, show skeleton in chips area
+      if (host.loading) {
+        const chipsEl = panel.querySelector('.ai-chips');
+        if (chipsEl) {
+          while (chipsEl.firstChild) chipsEl.removeChild(chipsEl.firstChild);
+          const sk = document.createElement('div');
+          sk.className = 'ai-skeleton';
+          const pRect = document.createElement('div'); pRect.className = 'ai-skel-rect ai-skel-progress';
+          const c1 = document.createElement('div'); c1.className = 'ai-skel-rect ai-skel-chip';
+          const c2 = document.createElement('div'); c2.className = 'ai-skel-rect ai-skel-chip';
+          const c3 = document.createElement('div'); c3.className = 'ai-skel-rect ai-skel-chip';
+          sk.appendChild(pRect); sk.appendChild(c1); sk.appendChild(c2); sk.appendChild(c3);
+          chipsEl.appendChild(sk);
+        }
+        return;
+      }
+      // Note: explanation text is shown in the main card area (data-explain), not under the progress bar to avoid redundancy.
+    }
+
+    // Calendar state for modal
+    const calendarState = { year: null, month: null, host: null, selectedStart: null, selectedEnd: null };
+
+    function formatDateYMD(y, m, d) {
+      return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    }
+
+    function daysInMonth(y, m) {
+      return new Date(y, m, 0).getDate();
+    }
+
+    function renderCalendarForHost(host) {
+      const cal = document.getElementById('modal-calendar');
+      // Clear calendar contents safely without using innerHTML
+      if (cal) { while (cal.firstChild) cal.removeChild(cal.firstChild); }
+
+      // Weekday headers
+      const weekdays = ['日','月','火','水','木','金','土'];
+      weekdays.forEach(w => {
+        const el = document.createElement('div');
+        el.className = 'text-xs text-gray-500';
+        el.innerText = w;
+        cal.appendChild(el);
+      });
+
+      const y = calendarState.year;
+      const m = calendarState.month; // 1-12
+      const firstWeekday = new Date(y, m-1, 1).getDay();
+      const dim = daysInMonth(y, m);
+
+      // fill blanks
+      for (let i=0;i<firstWeekday;i++) {
+        const blank = document.createElement('div');
+        cal.appendChild(blank);
+      }
+
+      for (let d=1; d<=dim; d++) {
+        const day = document.createElement('button');
+        day.type = 'button';
+        day.className = 'calendar-day';
+        const dateStr = formatDateYMD(y, m, d);
+        day.innerText = d;
+
+        const isAvailable = host.available && host.available.includes(dateStr);
+        if (isAvailable) day.classList.add('available');
+
+        // highlight selected range
+        const selStart = calendarState.selectedStart;
+        const selEnd = calendarState.selectedEnd;
+        if (selStart && selEnd) {
+          const dt = new Date(dateStr);
+          if (dt >= new Date(selStart) && dt <= new Date(selEnd)) {
+            day.style.boxShadow = 'inset 0 0 0 2px rgba(59,130,246,0.12)';
+            day.style.borderRadius = '8px';
+          }
+        }
+
+        day.addEventListener('click', () => {
+          // only allow selecting available dates
+          if (!isAvailable) return;
+          if (!calendarState.selectedStart || (calendarState.selectedStart && calendarState.selectedEnd)) {
+            calendarState.selectedStart = dateStr;
+            calendarState.selectedEnd = null;
+          } else {
+            // set end (ensure chronological)
+            const a = new Date(calendarState.selectedStart);
+            const b = new Date(dateStr);
+            if (b < a) { calendarState.selectedEnd = calendarState.selectedStart; calendarState.selectedStart = dateStr; }
+            else calendarState.selectedEnd = dateStr;
+          }
+          updateSelectedDisplay();
+          renderCalendarForHost(host);
+        });
+
+        cal.appendChild(day);
+      }
+
+      // footer note is handled separately
+    }
+
+    function updateSelectedDisplay() {
+      const selEl = document.getElementById('selected-dates');
+      if (!calendarState.selectedStart) return selEl.innerText = '未選択';
+      if (!calendarState.selectedEnd) return selEl.innerText = `${calendarState.selectedStart} (チェックイン)`;
+      selEl.innerText = `${calendarState.selectedStart} 〜 ${calendarState.selectedEnd}`;
+    }
+
+    function openModal(host) {
+      document.getElementById('modal-name').innerText = host.name;
+      document.getElementById('modal-location').innerText = host.location;
+      document.getElementById('modal-bio').innerText = host.bio;
+
+      // initialize calendar state: choose month based on first available date or today
+      calendarState.host = host;
+      calendarState.selectedStart = null;
+      calendarState.selectedEnd = null;
+      let refDate = new Date();
+      if (host.available && host.available.length > 0) {
+        refDate = new Date(host.available[0]);
+      }
+      calendarState.year = refDate.getFullYear();
+      calendarState.month = refDate.getMonth() + 1; // 1-12
+
+      document.getElementById('cal-month').innerText = `${calendarState.year}年${String(calendarState.month).padStart(2,'0')}月`;
+
+      // attach prev/next
+      document.getElementById('cal-prev').onclick = () => {
+        calendarState.month -= 1;
+        if (calendarState.month < 1) { calendarState.month = 12; calendarState.year -= 1; }
+        document.getElementById('cal-month').innerText = `${calendarState.year}年${String(calendarState.month).padStart(2,'0')}月`;
+        renderCalendarForHost(host);
+      };
+      document.getElementById('cal-next').onclick = () => {
+        calendarState.month += 1;
+        if (calendarState.month > 12) { calendarState.month = 1; calendarState.year += 1; }
+        document.getElementById('cal-month').innerText = `${calendarState.year}年${String(calendarState.month).padStart(2,'0')}月`;
+        renderCalendarForHost(host);
+      };
+
+      renderCalendarForHost(host);
+      updateSelectedDisplay();
+
+      document.getElementById('host-modal').classList.remove('hidden');
+      document.getElementById('host-modal').classList.add('flex');
+    }
+    function closeModal() {
+      document.getElementById('host-modal').classList.remove('flex');
+      document.getElementById('host-modal').classList.add('hidden');
+    }
+
+    document.getElementById('modal-close').addEventListener('click', closeModal);
+
+    // friend / fav actions (mock)
+    document.getElementById('friend-btn').addEventListener('click', () => { alert('友達申請を送信しました'); closeModal(); });
+    document.getElementById('fav-btn').addEventListener('click', () => {
+      const icon = document.getElementById('fav-icon');
+      if (icon.classList.contains('far')) { icon.classList.remove('far'); icon.classList.add('fas'); icon.style.color = '#ef4444'; alert('お気に入りに追加しました'); }
+      else { icon.classList.remove('fas'); icon.classList.add('far'); icon.style.color = ''; alert('お気に入りを解除しました'); }
+    });
+
+    // Prompt editor modal handlers
+    function openPromptEditor() {
+      const sysTA = document.getElementById('system-prompt-textarea');
+      const userTA = document.getElementById('prompt-textarea');
+      if (sysTA) sysTA.value = systemPrompt || '';
+      if (userTA) userTA.value = promptTemplate || '';
+      const modal = document.getElementById('prompt-modal');
+      if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+    }
+    function closePromptEditor() {
+      const modal = document.getElementById('prompt-modal');
+      if (modal) { modal.classList.remove('flex'); modal.classList.add('hidden'); }
+    }
+
+    const editPromptBtn = document.getElementById('edit-prompt-btn');
+    if (editPromptBtn) editPromptBtn.addEventListener('click', (e) => { e.preventDefault(); openPromptEditor(); });
+
+    const promptCancelBtn = document.getElementById('prompt-cancel');
+    if (promptCancelBtn) promptCancelBtn.addEventListener('click', (e) => { e.preventDefault(); closePromptEditor(); });
+
+    const promptSaveBtn = document.getElementById('prompt-save');
+    if (promptSaveBtn) promptSaveBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const sysTA = document.getElementById('system-prompt-textarea');
+      const userTA = document.getElementById('prompt-textarea');
+      if (sysTA) systemPrompt = sysTA.value;
+      if (userTA) promptTemplate = userTA.value;
+      closePromptEditor();
+      try { alert('プロンプトを保存しました'); } catch (err) { /* ignore */ }
+    });
+
+    // NOTE: removed an accidental top-level duplicated AI call block here which contained `await` and caused a script error.
+
+    // Update only the DOM for a single host card (avoid full re-render/resort)
+    function updateCardDisplay(host) {
+      try {
+        const container = document.getElementById('hosts');
+        const card = container.querySelector(`.host-card[data-id="${host.id}"]`);
+        if (!card) return;
+        const matchEl = card.querySelector('.match-rate');
+        if (matchEl) matchEl.innerText = `${host.match}%マッチ`;
+
+        // Ensure ai-footer exists; if not, create and append it to the card's main area
+        let aiFooter = card.querySelector('.ai-footer');
+        if (!aiFooter) {
+          const main = card.querySelector('.flex-1') || card.querySelector('div');
+          aiFooter = document.createElement('div');
+          aiFooter.className = 'ai-footer text-xs text-gray-500 mt-2';
+          aiFooter.textContent = '最終更新: -';
+          if (main) main.appendChild(aiFooter);
+          else card.appendChild(aiFooter);
+        }
+        if (aiFooter) aiFooter.innerText = host.lastUpdated ? `最終更新: ${host.lastUpdated}` : '最終更新: -';
+
+        const explainEl = card.querySelector('[data-explain]');
+        if (explainEl) explainEl.innerText = host.explanation || '';
+        // update inline ai panel
+        renderInlinePanel(host, card);
+        // ensure raw stored on host model; show-raw reads from model
+        // in case any tag-based snippets rely on match/reason snippets, update them too
+        const reasonBadge = card.querySelector('.match-reason');
+        if (reasonBadge && host.tags) reasonBadge.innerText = (host.tags.slice(0,2).join(' / ')) + ' による高い親和性が確認されています。';
+      } catch (e) {
+        // fallback: if anything goes wrong, re-render entire list
+        renderHosts();
+      }
+    }
+
+    // Briefly highlight the explanation area of a host's card to draw user attention
+    function applyExplainHighlight(host) {
+      try {
+        const container = document.getElementById('hosts');
+        if (!container) return;
+        const card = container.querySelector(`.host-card[data-id="${host.id}"]`);
+        if (!card) return;
+        const expl = card.querySelector('[data-explain]');
+        if (!expl) return;
+        // toggle class to trigger transition; use small pop for visibility
+        expl.classList.add('explain-highlight');
+        // force reflow so pop transition is applied reliably
+        void expl.offsetWidth;
+        expl.classList.add('pop');
+        // remove highlight after a short interval
+        setTimeout(() => {
+          expl.classList.remove('pop');
+          // keep subtle highlight a bit longer then remove
+          setTimeout(()=> expl.classList.remove('explain-highlight'), 450);
+        }, 650);
+      } catch (e) { /* ignore errors */ }
+    }
+    // Implement updateMatch invoked by the 更新 button. Attempts to call backend, parse JSON-like output,
+    // and set host.ai / host.raw / host.match / host.explanation and lastUpdated. Uses extractBalancedObjectText
+    // to be resilient to noisy model outputs.
+    async function updateMatch(hostId, /*btn, cardEl*/ ) {
+      const host = hosts.find(h => h.id === hostId);
+      if (!host) return;
+      // remember previous match so we can detect if sorting order should change
+      const previousMatch = host.match;
+      host.loading = true;
+
+      // Re-query the live button element from the DOM to avoid operating on a stale reference
+      let btnEl = null;
+      try {
+        btnEl = document.querySelector(`.host-card[data-id="${hostId}"] .update-match-btn`);
+        if (btnEl) { btnEl.disabled = true; btnEl.innerText = '更新中...'; }
+      } catch (e) { /* ignore DOM errors */ }
+
+      updateCardDisplay(host);
+
+      const prompt = buildPrompt(host, 'match');
+      const system_for_call = buildSystemPrompt(host);
+
+      try {
+        const res = await fetch('http://localhost:8000/api/v1/ai/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ system_prompt: system_for_call, prompt, max_tokens: 4096 })
+        });
+
+        const text = await res.text();
+        host.raw = text;
+        // Keep a sanitized copy for all UI display paths to ensure any
+        // accidental HTML or unbalanced tags from model output cannot
+        // affect the DOM if used later.
+        host.raw_sanitized = sanitizeText(text);
+
+        // Try to extract a JSON-like block first
+        let parsed = null;
+        const maybeObjText = extractBalancedObjectText(text);
+        if (maybeObjText) {
+          try { parsed = JSON.parse(maybeObjText); } catch (e) { parsed = null; }
+        }
+
+        // If still not parsed, attempt to parse entire body as JSON
+        if (!parsed) {
+          try { parsed = JSON.parse(text); } catch (e) { parsed = null; }
+        }
+
+        // If parsed is an object it may contain an inner JSON string in `output` or `text`.
+        if (parsed && typeof parsed === 'object') {
+          const innerCandidates = [];
+          if (typeof parsed.output === 'string') innerCandidates.push(parsed.output);
+          if (typeof parsed.text === 'string') innerCandidates.push(parsed.text);
+          if (innerCandidates.length > 0) {
+            for (const cand of innerCandidates) {
+              try {
+                const inner = JSON.parse(cand);
+                parsed = inner;
+                break;
+              } catch (e) {
+                // try unescaping common escapes and single-quote wrappers
+                try {
+                  const cleaned = String(cand).replace(/\\"/g, '\"').replace(/\\\\/g, '\\').replace(/^'(.*)'$/m, '$1');
+                  parsed = JSON.parse(cleaned);
+                  break;
+                } catch (e2) {
+                  // continue to next candidate
+                }
+              }
+            }
+          }
+
+          // Additional safeguard: if parsed still looks like a wrapper and contains a string field
+          // that itself contains JSON (e.g. parsed.text === '{"match_rate":...}'), try to extract/parse it.
+          if (parsed && typeof parsed === 'object') {
+            const probe = String(parsed.text || parsed.output || parsed.result || parsed.data || '');
+            if (probe && probe.trim().startsWith('{')) {
+              try {
+                const inner = JSON.parse(probe);
+                parsed = inner;
+              } catch (e) {
+                const innerBlock = extractBalancedObjectText(probe);
+                if (innerBlock) {
+                  try { parsed = JSON.parse(innerBlock); } catch (e2) {
+                    try {
+                      const cleaned2 = probe.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+                      parsed = JSON.parse(cleaned2);
+                    } catch (e3) { /* ignore */ }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // Best-effort: extract numbers from parsed or raw text
+        let matchVal = null;
+        let aiPayload = null;
+
+        if (parsed && typeof parsed === 'object') {
+          aiPayload = parsed;
+          // common candidates
+          const candidates = ['match_rate','matchRate','match','overall_match','score'];
+          for (const c of candidates) {
+            const found = findDeepValue(parsed, [c]);
+            const num = parseNumberLike(found);
+            if (num != null) { matchVal = num; break; }
+          }
+        }
+
+        // fallback: regex search in raw text for e.g. "match_rate": 85 or 85%
+        if (matchVal == null) {
+          const m = text.match(/"?match[_A-Za-z0-9]*"?\s*[:=]\s*([0-9]+(?:\.[0-9]+)?)/i);
+          if (m) matchVal = Number(m[1]);
+          else {
+            const m2 = text.match(/(\d{1,3}(?:\.\d+)?)\s*%/);
+            if (m2) matchVal = Number(m2[1]);
+          }
+        }
+
+        // assign ai payload if found
+        if (aiPayload) host.ai = aiPayload;
+        // set match (clamp 0-100 and round)
+        if (matchVal != null && !Number.isNaN(matchVal)) {
+          host.match = Math.max(0, Math.min(100, Math.round(matchVal)));
+        } else {
+          // if no numeric match, keep previous match but still persist raw
+        }
+
+        // explanation: prefer parsed.explanation or fallback to trimmed text snippet
+        let explanation = null;
+        if (aiPayload && (aiPayload.explanation || aiPayload.reason)) explanation = aiPayload.explanation || aiPayload.reason;
+        if (!explanation) {
+          // try to pull lines that look explanatory (skip JSON block)
+          const cleaned = text.replace(maybeObjText || '', '').trim();
+          explanation = cleaned.split('\n').slice(0,3).join('\n').trim();
+        }
+        // sanitize explanation to remove any accidental HTML injected by model
+        host.explanation = sanitizeText(explanation);
+        host.lastUpdated = new Date().toLocaleString();
+
+      } catch (err) {
+        host.raw = `通信/解析エラー: ${err.message}`;
+      } finally {
+        host.loading = false;
+        try { if (btnEl) { btnEl.disabled = false; btnEl.innerText = '更新'; } } catch(e) { /* ignore */ }
+        // Update the card contents first.
+        try { updateCardDisplay(host); } catch(e) { /* ignore */ }
+        // briefly emphasize the explanation so the user notices updated reasoning
+        try { applyExplainHighlight(host); } catch(e) { /* ignore */ }
+        // If match changed, move only the updated card to its correct position to avoid
+        // re-rendering the entire list (prevents visual flicker and keeps event handlers).
+        if (host.match !== previousMatch) {
+          try { resortHostCard(host); } catch (e) { /* fallback to full render */ renderHosts(); }
+        }
+      }
+    }
+
+    // Raw modal helpers
+    function openRawModal(text) {
+      document.getElementById('raw-pre').textContent = text;
+      document.getElementById('raw-modal').classList.remove('hidden');
+      document.getElementById('raw-modal').classList.add('flex');
+    }
+    function closeRawModal() {
+      document.getElementById('raw-modal').classList.remove('flex');
+      document.getElementById('raw-modal').classList.add('hidden');
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      const rawClose = document.getElementById('raw-close');
+      if (rawClose) rawClose.addEventListener('click', closeRawModal);
+    });
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      // Sanitize all host fields to strip any accidental HTML that might
+      // have been stored in model responses or sample data. This is a
+      // defensive step to guarantee renderHosts never receives strings
+      // containing markup that could break layout.
+      try {
+        if (typeof sanitizeText === 'function' && Array.isArray(hosts)) {
+          hosts.forEach(h => {
+            try {
+              h.name = sanitizeText(h.name);
+              h.location = sanitizeText(h.location);
+              h.bio = sanitizeText(h.bio);
+              h.free_text = sanitizeText(h.free_text);
+              h.explanation = sanitizeText(h.explanation);
+              h.lastUpdated = sanitizeText(h.lastUpdated);
+              if (Array.isArray(h.tags)) h.tags = h.tags.map(t => sanitizeText(t));
+              if (Array.isArray(h.offers)) h.offers = h.offers.map(o => sanitizeText(o));
+            } catch (err) { /* ignore per-host errors */ }
+          });
+        }
+      } catch (err) { /* ignore */ }
+
+      renderHosts();
+    });
+  </script>
+</body>
+</html>
