@@ -1,0 +1,45 @@
+# Node / frontend
+node_modules/
+frontend/.next/
+.next/
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
+database.db
+backend/database.db
+.env
+.venv/
+venv/
+
+# Build / coverage
+coverage/
+coverage-final.json
+lcov-report/
+
+# Misc
+*.log
+*.bak
+sample/frontend/index.html.bak
+
+# Editors
+.vscode/
+.idea/
+
+# Static build artifacts
+dist/
+build/
+
+# Lockfiles (optional to keep)
+# package-lock.json
+
+# Generated files
+**/.cache/
+
+# Ignore local secrets
+secrets.yaml
+
