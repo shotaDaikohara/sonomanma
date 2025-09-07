@@ -1,293 +1,855 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Text Generator - ハッカソン</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .container {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            max-width: 800px;
-            width: 90%;
-        }
-        
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 30px;
-            font-size: 2.5em;
-        }
-        
-        .input-section {
-            margin-bottom: 30px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 10px;
-            font-weight: bold;
-            color: #555;
-        }
-        
-        textarea {
-            width: 100%;
-            min-height: 120px;
-            padding: 15px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            font-size: 16px;
-            resize: vertical;
-            transition: border-color 0.3s;
-        }
-        
-        textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        .controls {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-        
-        .max-tokens {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        input[type="number"] {
-            width: 100px;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-        }
-        
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-        }
-        
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .result-section {
-            margin-top: 30px;
-        }
-        
-        .result {
-            background: #f8f9fa;
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            padding: 20px;
-            min-height: 100px;
-            white-space: pre-wrap;
-            font-size: 16px;
-            line-height: 1.6;
-        }
-        
-        .loading {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: #667eea;
-            font-weight: bold;
-        }
-        
-        .spinner {
-            width: 20px;
-            height: 20px;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .error {
-            color: #dc3545;
-            background: #f8d7da;
-            border-color: #f5c6cb;
-        }
-        
-        .success {
-            color: #155724;
-            background: #d4edda;
-            border-color: #c3e6cb;
-        }
-        
-        .stats {
-            margin-top: 10px;
-            color: #666;
-            font-size: 14px;
-        }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>StayConnect — 宿主一覧 (Sample)</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <style>
+      .host-card { transition: all .25s ease; }
+      .host-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,.12); }
+      .match-rate { background: linear-gradient(135deg,#10b981 0%,#059669 100%); color:#fff; padding:4px 8px; border-radius:999px; font-size:.75rem; }
+      .match-reason { background: linear-gradient(135deg,#f093fb 0%,#f5576c 100%); color:#fff; padding:8px 12px; border-radius:8px; font-size:.8rem; }
+      .calendar-day { width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%; }
+      .calendar-day.available { background:#10b981;color:#fff; }
+      .calendar-day.partially-available { background:#f59e0b;color:#fff; }
+
+      /* Inline AI (crystal) panel styles */
+      .ai-panel { transition: all .18s ease; }
+      /* collapsed state: show as a thin bar (one-line) */
+      .ai-panel.collapsed { max-height:48px; overflow:hidden; }
+      /* hide the chips (age/gender/location) when collapsed to keep the bar minimal; keep toggle visible */
+      .ai-panel.collapsed .ai-chips { display: none; }
+      /* hide explanation when collapsed */
+      .ai-panel.collapsed .ai-explanation { display: none; }
+      /* skeleton for loading state */
+      .ai-skeleton { display:flex; gap:8px; align-items:center; }
+      .ai-skel-rect { background: linear-gradient(90deg,#e6f0ff,#f8fbff); border-radius:4px; height:12px; }
+      .ai-skel-progress { width:88px; }
+      .ai-skel-chip { width:64px; height:20px; }
+      .ai-skel-expl { flex:1; height:12px; }
+
+      /* NEW: axis / weights / icebreakers styles */
+      .ai-axes { display:flex; gap:8px; align-items:center; }
+      .ai-axis { flex:1; display:flex; flex-direction:column; gap:6px; }
+      .ai-axis .label { font-size:10px; color:#065f46; font-weight:600; }
+      .ai-axis-bar { background:#e6f0ff; height:8px; border-radius:999px; overflow:hidden; }
+      .ai-axis-fill { height:100%; background:linear-gradient(90deg,#60a5fa,#3b82f6); width:0%; }
+      .ai-axis-val { font-size:11px; color:#1e3a8a; text-align:right; }
+      .ai-weights { font-size:11px; color:#475569; }
+      .ai-icebreakers { display:flex; gap:6px; flex-wrap:wrap; }
+      .ai-icebreakers .ice-btn { background:#fff; border:1px solid #e5e7eb; padding:6px 8px; border-radius:6px; font-size:12px; cursor:pointer; }
+      .ai-icebreakers .ice-btn:hover { background:#f8fafc; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>🚀 AI テキスト生成</h1>
-        
-        <div class="input-section">
-            <label for="systemPrompt">システムプロンプト（任意）：</label>
-            <textarea id="systemPrompt" rows="3">あなたは親切でおせっかいな大阪のおばちゃんです。学生に対して温かい言葉を話すように心がけて下さい。</textarea>
-        </div>
-        
-        <div class="input-section">
-            <label for="prompt">プロンプトを入力してください：</label>
-            <textarea id="prompt" placeholder="例：今日の天気について教えて"></textarea>
-        </div>
-        
-        <div class="controls">
-            <div class="max-tokens">
-                <label for="maxTokens">最大トークン数：</label>
-                <input type="number" id="maxTokens" value="100" min="10" max="1000">
-            </div>
-            <button id="generateBtn" onclick="generateText()">✨ 生成開始</button>
-        </div>
-        
-        <div class="result-section">
-            <label>生成結果：</label>
-            <div id="result" class="result">ここに生成されたテキストが表示されます</div>
-            <div id="stats" class="stats"></div>
-        </div>
+<body class="bg-gray-50 min-h-screen">
+  <header class="bg-white border-b shadow-sm">
+    <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center">
+        <i class="fas fa-home text-2xl text-blue-600 mr-2"></i>
+        <h1 class="text-lg font-bold">StayConnect</h1>
+      </div>
+      <div class="flex items-center space-x-3">
+        <i class="fas fa-search text-gray-600"></i>
+        <i class="fas fa-user-circle text-gray-600"></i>
+        <button id="edit-prompt-btn" class="ml-3 text-sm px-2 py-1 border rounded">プロンプト編集</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-2xl mx-auto p-4">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-semibold">宿主一覧</h2>
+      <span class="text-sm text-gray-600">マッチ率順</span>
     </div>
 
-    <script>
-        const API_BASE_URL = 'http://localhost:8000';
-        
-        async function generateText() {
-            const promptElement = document.getElementById('prompt');
-            const systemPromptElement = document.getElementById('systemPrompt');
-            const maxTokensElement = document.getElementById('maxTokens');
-            const resultElement = document.getElementById('result');
-            const statsElement = document.getElementById('stats');
-            const generateBtn = document.getElementById('generateBtn');
-            
-            const prompt = promptElement.value.trim();
-            const systemPrompt = systemPromptElement ? systemPromptElement.value.trim() : undefined;
-            const maxTokens = parseInt(maxTokensElement.value);
-            
-            if (!prompt) {
-                showError('プロンプトを入力してください');
-                return;
-            }
-            
-            // ローディング状態
-            generateBtn.disabled = true;
-            generateBtn.innerHTML = '⏳ 生成中...';
-            resultElement.innerHTML = '<div class="loading"><div class="spinner"></div>AI が考えています...</div>';
-            resultElement.className = 'result';
-            statsElement.innerHTML = '';
-            
-            try {
-                const startTime = Date.now();
-                
-                const body = {
-                    prompt: prompt,
-                    max_tokens: maxTokens
-                };
-                if (systemPrompt) body.system_prompt = systemPrompt;
-                
-                // API呼び出し
-                const response = await fetch(`${API_BASE_URL}/api/v1/ai/generate`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(body)
-                });
-                
-                const endTime = Date.now();
-                const duration = (endTime - startTime) / 1000;
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const data = await response.json();
-                
-                // 成功表示
-                resultElement.innerHTML = data.text;
-                resultElement.className = 'result success';
-                statsElement.innerHTML = `🔢 使用トークン数: ${data.tokens} | ⏱️ 生成時間: ${duration.toFixed(2)}秒`;
-                
-            } catch (error) {
-                showError(`エラーが発生しました: ${error.message}`);
-                console.error('Generation error:', error);
-            } finally {
-                // ボタンを元に戻す
-                generateBtn.disabled = false;
-                generateBtn.innerHTML = '✨ 生成開始';
-            }
+    <div id="hosts" class="space-y-4">
+      <!-- Host cards will be rendered here by JS -->
+    </div>
+  </main>
+
+  <!-- Modal -->
+  <div id="host-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white max-w-lg w-full mx-4 rounded-lg overflow-y-auto max-h-[80vh]">
+      <div class="p-4 border-b flex items-center justify-between">
+        <div>
+          <h3 id="modal-name" class="font-semibold text-lg">宿主名</h3>
+          <p id="modal-location" class="text-sm text-gray-600">場所</p>
+        </div>
+        <button id="modal-close" class="text-gray-600"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="p-4 space-y-4">
+        <div>
+          <h4 class="font-semibold mb-2">カレンダー（例）</h4>
+          <div class="flex items-center justify-between mb-2">
+            <button id="cal-prev" class="px-2 py-1 rounded hover:bg-gray-100">‹</button>
+            <div id="cal-month" class="font-semibold">2024年12月</div>
+            <button id="cal-next" class="px-2 py-1 rounded hover:bg-gray-100">›</button>
+          </div>
+          <div id="modal-calendar" class="grid grid-cols-7 gap-1 text-center text-xs">
+            <!-- days injected by JS -->
+          </div>
+          <div class="text-sm text-gray-600 mt-2">選択: <span id="selected-dates">未選択</span></div>
+        </div>
+        <div>
+          <h4 class="font-semibold mb-2">自己紹介</h4>
+          <p id="modal-bio" class="text-sm text-gray-700">ここにホストの自己紹介が入ります。</p>
+        </div>
+        <div class="flex space-x-2">
+          <button id="friend-btn" class="flex-1 bg-blue-500 text-white py-2 rounded-lg">友達申請</button>
+          <button id="fav-btn" class="px-4 py-2 border rounded-lg"><i id="fav-icon" class="far fa-heart"></i> お気に入り</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prompt Editor Modal -->
+  <div id="prompt-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-60">
+    <div class="bg-white max-w-lg w-full mx-4 rounded-lg overflow-y-auto max-h-[80vh] p-4">
+      <h3 class="font-semibold mb-2">AIプロンプトテンプレート編集</h3>
+      <p class="text-sm text-gray-600 mb-2">システムプロンプト（高優先・モデルへの動作規則）とユーザープロンプト（実際の出力指示）を分けて編集できます。プレースホルダ: {{student.gender}}, {{student.age}}, {{student.location}}, {{host.gender}}, {{host.age}}, {{host.location}}</p>
+      <label class="text-xs font-semibold">システムプロンプト</label>
+      <textarea id="system-prompt-textarea" class="w-full h-24 border rounded p-2 mb-3"></textarea>
+      <label class="text-xs font-semibold">ユーザープロンプト（テンプレート）</label>
+      <textarea id="prompt-textarea" class="w-full h-36 border rounded p-2"></textarea>
+      <div class="flex justify-end mt-3 space-x-2">
+        <button id="prompt-cancel" class="px-3 py-1 border rounded">キャンセル</button>
+        <button id="prompt-save" class="px-3 py-1 bg-blue-500 text-white rounded">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Raw response modal -->
+  <div id="raw-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-70">
+    <div class="bg-white max-w-3xl w-full mx-4 rounded-lg overflow-auto max-h-[80vh] p-4">
+      <div class="flex items-center justify-between border-b pb-2 mb-2">
+        <h4 class="font-semibold">バックエンド応答（生データ）</h4>
+        <button id="raw-close" class="text-gray-600">閉じる</button>
+      </div>
+      <pre id="raw-pre" class="text-sm whitespace-pre-wrap break-words">--</pre>
+    </div>
+  </div>
+
+  <script>
+    // Minimal mock data — kept front-end only to avoid backend changes.
+    // 仮想ホストの自由テキスト群（MVP 提出用）
+    const virtualHostTexts = [
+      "都内ワンルームに住む30代女性。禁煙。英語を勉強中で、会話練習相手を探している。平日は夜22時まで仕事、休日は家にいることが多い。寝るのは23時頃。簡単な料理を一緒に作れる人が理想.",
+      "40代男性、既婚、子ども2人とマンション暮らし。家は郊外で最寄り駅から徒歩10分。家庭的で賑やかな環境。英語は苦手。子どもと遊んでくれるゲストを歓迎。門限はなしだが、夜遅くの騒音はNG.",
+      "20代後半のフリーランス男性。渋谷のシェアハウスに居住。国際交流が好きで毎週イベントに参加。英語とスペイン語が堪能。深夜まで起きていることが多く、にぎやかな雰囲気を好む。ゲストと一緒に街歩きを楽しみたい.",
+      "50代女性、一軒家に1人暮らし。最寄り駅からバスで15分。静かで落ち着いた滞在を希望。禁煙、飲酒不可。簡単な英語しか話せないが、文化交流には関心がある。夜は早めに就寝（21時頃）.",
+      "30代夫婦、猫2匹と一緒に住む。駅近の2LDKマンション。清潔さを重視。Wi-Fiや洗濯機利用可。ゲストとは軽い会話程度を希望。英語は日常会話レベル。猫が好きな人を歓迎.",
+      "28歳男性、フリーランスの写真家。週末は近所のカフェで写真のワークショップを開いています。街歩きや撮影スポットの案内が得意で、英語も少し話せます.",
+      "52歳女性、吉祥寺で庭師をしている一人暮らし。四季折々の庭仕事が得意で、静かで落ち着いた滞在を提供します。家庭料理も楽しめます.",
+      "34歳男性、スタートアップ共同創業者。プロダクトとデザインに強く、テック系の話題で盛り上がれます。平日の日中は忙しいですが週末は比較的時間があります。"
+    ];
+
+    const hosts = [
+      { id: 'host1', name: '田中 花子', location: '渋谷駅', bio: '音楽と料理が好き。ジャズピアノ演奏とイタリアンが得意。', free_text: virtualHostTexts[0], gender: 'female', age: 35, match: 98, rating: 4.9, tags: ['🎵 音楽','🍳 料理'], offers: ['料理教室','ピアノ演奏観賞'], motivation: '地域交流と若者支援', available: ['2024-12-23','2024-12-24','2024-12-25'] },
+      { id: 'host2', name: '佐藤 次郎', location: '新宿駅', bio: '旅行とスポーツが好き。トレッキングやテニスを楽しみます。', free_text: virtualHostTexts[1], gender: 'male', age: 44, match: 94, rating: 4.7, tags: ['✈️ 旅行','⚽ スポーツ'], offers: ['近隣案内','子どもとの遊び手伝い'], motivation: '国際交流と地域活性化', available: ['2025-01-06','2025-01-07'] },
+      { id: 'host3', name: '鈴木 美咲', location: '原宿駅', bio: 'アートと写真が好き。美術館巡りが趣味。', free_text: virtualHostTexts[2], gender: 'female', age: 29, match: 91, rating: 4.8, tags: ['🎨 アート','✈️ 旅行'], offers: ['写真散歩案内','美術館ツアー'], motivation: '文化交流と写真の共有', available: ['2025-02-11'] },
+      { id: 'host4', name: '山本 隆', location: '恵比寿駅', bio: '写真家でカメラ好き。街歩きと撮影スポット案内が得意。', free_text: virtualHostTexts[5], gender: 'male', age: 28, match: 89, rating: 4.6, tags: ['📷 写真','☕ カフェ'], offers: ['撮影スポット案内','ワークショップ開催'], motivation: '若手応援と共同制作', available: ['2025-03-10','2025-03-11'] },
+      { id: 'host5', name: '高橋 純子', location: '吉祥寺駅', bio: '庭師。四季の手入れと家庭料理を楽しむ穏やかな生活。', free_text: virtualHostTexts[6], gender: 'female', age: 52, match: 92, rating: 4.9, tags: ['🌿 庭いじり','🍚 手料理'], offers: ['庭仕事体験','家庭料理提供'], motivation: '世代間交流と自然の共有', available: ['2025-04-01','2025-04-02'] },
+      { id: 'host6', name: '中村 翔太', location: '品川駅', bio: 'スタートアップの共同創業者。テックとデザインの話が得意。', free_text: virtualHostTexts[7], gender: 'male', age: 34, match: 85, rating: 4.5, tags: ['💡 テック','🎨 デザイン'], offers: ['プロダクト相談','デザインワークショップ'], motivation: '知見共有とコミュニティ構築', available: ['2025-02-20','2025-02-21'] }
+    ];
+
+    // Try to extract the first balanced {...} JSON-like substring from a text blob
+    function extractBalancedObjectText(text) {
+      if (!text || typeof text !== 'string') return null;
+      let start = text.indexOf('{');
+      while (start !== -1) {
+        let depth = 0;
+        for (let i = start; i < text.length; i++) {
+          const ch = text[i];
+          if (ch === '{') depth++;
+          else if (ch === '}') depth--;
+          if (depth === 0) {
+            return text.slice(start, i + 1);
+          }
         }
-        
-        function showError(message) {
-            const resultElement = document.getElementById('result');
-            const statsElement = document.getElementById('stats');
-            
-            resultElement.innerHTML = message;
-            resultElement.className = 'result error';
-            statsElement.innerHTML = '';
+        start = text.indexOf('{', start + 1);
+      }
+      return null;
+    }
+
+    // 固定の学生情報（既存の仕組みを踏襲）
+    const studentInfo = { name: '山田 太郎', gender: 'male', age: 21, location: '東京都', self_pr: '留学経験はないが異文化交流に強い関心があり、写真と音楽が趣味。', purpose: '短期の文化交流と語学練習' };
+
+    // Default prompts (fallbacks). These must exist before buildPrompt is used.
+    // Older/alternate prompts can be kept in the editor modal; these defaults ensure no ReferenceError.
+    let systemPrompt = `あなたは学生とホストの相性を評価するアシスタントです。簡潔で決定論的な回答をし、可能な限りOUTPUT SCHEMAに従ったJSONを返してください。回答は必ず日本語で行ってください。`;
+
+    let promptTemplate = `学生とホストの相性を評価してください。利用可能な情報 (学生: {{student.name}}, 性別: {{student.gender}}, 年齢: {{student.age}}, 居住地: {{student.location}}, 自己PR: {{student.self_pr}}, 目的: {{student.purpose}}; ホスト: {{host.name}}, 性別: {{host.gender}}, 年齢: {{host.age}}, 居住地: {{host.location}}, 自己紹介: {{host.bio}}, タグ: {{host.tags}}, 提供内容: {{host.offers}}, 詳細情報: {{host.free_text}}, 動機: {{host.motivation}}) を使用してください。
+
+以下のOUTPUT SCHEMAに厳密に従って、JSONオブジェクトのみを返してください：
+{
+  "match_rate": number,              // 0-100の総合マッチ率
+  "empathy_score": number,           // 0-100の共感スコア
+  "value_score": number,             // 0-100の価値観スコア
+  "commonground_score": number,      // 0-100の共通点スコア
+  "score_components": {              // オプション：詳細内訳
+    "age_score": number,
+    "gender_score": number,
+    "location_score": number
+  },
+  "scoring_weights": {               // オプション：使用した重み
+    "empathy": number,
+    "value": number,
+    "commonground": number
+  },
+  "icebreakers": ["string"],       // 最大3つの短いアイスブレイク用フレーズ（日本語）
+  "explanation": "string"          // 短い人間向け説明（日本語）
+}
+
+有効なJSONを生成できない場合でも、ベストエフォートで回答し、JSONオブジェクトを優先してください。余計なコメントは不要です。回答は必ず日本語で行ってください。`;
+
+    function buildPrompt(host, mode = 'match') {
+      // Inject structured student and host fields into the user prompt template (no duplicated context)
+      let s = promptTemplate
+        .replaceAll('{{student.gender}}', studentInfo.gender)
+        .replaceAll('{{student.age}}', String(studentInfo.age))
+        .replaceAll('{{student.location}}', studentInfo.location)
+        .replaceAll('{{student.name}}', studentInfo.name || '')
+        .replaceAll('{{student.self_pr}}', studentInfo.self_pr || '')
+        .replaceAll('{{student.purpose}}', studentInfo.purpose || '')
+        .replaceAll('{{host.gender}}', host.gender || '')
+        .replaceAll('{{host.age}}', String(host.age || 0))
+        .replaceAll('{{host.location}}', host.location || '');
+      // additional host fields
+      s = s.replaceAll('{{host.name}}', host.name || '')
+           .replaceAll('{{host.bio}}', host.bio || '')
+           .replaceAll('{{host.offers}}', Array.isArray(host.offers) ? host.offers.join(', ') : (host.offers || ''))
+           .replaceAll('{{host.motivation}}', host.motivation || '')
+           .replaceAll('{{host.free_text}}', host.free_text || '')
+           .replaceAll('{{host.tags}}', Array.isArray(host.tags) ? host.tags.join(', ') : (host.tags || ''));
+      return s;
+    }
+
+    // Build system prompt with injected student/host fields so system-level instructions can reference them
+    function buildSystemPrompt(host) {
+      let s = systemPrompt || '';
+      s = s.replaceAll('{{student.gender}}', studentInfo.gender)
+        .replaceAll('{{student.age}}', String(studentInfo.age))
+        .replaceAll('{{student.location}}', studentInfo.location)
+        .replaceAll('{{student.name}}', studentInfo.name || '')
+        .replaceAll('{{student.self_pr}}', studentInfo.self_pr || '')
+        .replaceAll('{{student.purpose}}', studentInfo.purpose || '')
+        .replaceAll('{{host.gender}}', host.gender || '')
+        .replaceAll('{{host.age}}', String(host.age || 0))
+        .replaceAll('{{host.location}}', host.location || '');
+      // Attach compact JSON context only in system prompt to avoid duplication
+      s += '\n\n<!-- CONTEXT_START -->\n' + structuredContext(host) + '\n<!-- CONTEXT_END -->';
+      return s;
+    }
+
+    // Return a compact JSON block with student and host structured fields
+    function structuredContext(host) {
+      const ctx = {
+        student: {
+          name: studentInfo.name || null,
+          gender: studentInfo.gender || null,
+          age: Number(studentInfo.age || 0),
+          location: studentInfo.location || null,
+          self_pr: studentInfo.self_pr || null,
+          purpose: studentInfo.purpose || null
+        },
+        host: {
+          id: host.id || null,
+          name: host.name || null,
+          gender: host.gender || null,
+          age: Number(host.age || 0),
+          location: host.location || null,
+          bio: host.bio || null,
+          free_text: host.free_text || null,
+          tags: host.tags || null,
+          offers: host.offers || null,
+          motivation: host.motivation || null
         }
-        
-        // エンターキーでも生成できるように
-        document.getElementById('prompt').addEventListener('keydown', function(event) {
-            if (event.ctrlKey && event.key === 'Enter') {
-                generateText();
-            }
+      };
+      return JSON.stringify(ctx, null, 2);
+    }
+
+    function renderHosts() {
+      const container = document.getElementById('hosts');
+      container.innerHTML = '';
+      hosts.sort((a,b) => b.match - a.match).forEach(h => {
+        const el = document.createElement('div');
+        el.className = 'host-card bg-white rounded-lg p-4';
+        el.setAttribute('data-id', h.id);
+        el.innerHTML = `
+          <div class="flex items-start space-x-3">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-r from-green-400 to-blue-500 flex items-center justify-center text-white font-bold">${h.name.split(' ')[0]}</div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="font-semibold">${h.name}</h3>
+                <div class="flex items-center space-x-2">
+                  <span class="match-rate">${h.match}%マッチ</span>
+                  <div class="flex items-center text-yellow-400 text-sm"><i class="fas fa-star mr-1"></i><span>${h.rating}</span></div>
+                  <!-- moved update button to top-right -->
+                  <button class="update-match-btn ml-2 bg-indigo-500 text-white px-2 py-1 rounded text-sm">更新</button>
+                  <button class="show-raw-btn ml-2 text-xs text-gray-500">全表示</button>
+                </div>
+              </div>
+              <p class="text-sm text-gray-600 mb-2">${h.location}</p>
+              <div class="flex items-center space-x-2 text-sm text-gray-600 mb-2">
+                <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded">${h.gender ? (h.gender === 'male' ? '男性' : (h.gender === 'female' ? '女性' : h.gender)) : '不明'}</span>
+                <span>${h.age ? h.age + '歳' : '年齢不明'}</span>
+              </div>
+              <div class="mb-3"><div class="match-reason">${h.tags.slice(0,2).join(' / ')} による高い親和性が確認されています。</div></div>
+              <div class="flex space-x-2 text-xs">
+                ${h.tags.map(t => `<span class="bg-gray-100 text-gray-800 px-2 py-1 rounded">${t}</span>`).join('')}
+              </div>
+
+              <!-- removed lower update button; explanation area kept -->
+              <div class="mt-3">
+                <div class="text-xs text-gray-500">最終更新: <span class="last-updated">${h.lastUpdated || '-'}</span></div>
+              </div>
+
+              <!-- Inline AI panel (collapsed by default) -->
+              <div id="ai-panel-${h.id}" class="ai-panel mt-2 bg-blue-50 border border-blue-100 rounded p-3 collapsed" data-ai-panel role="region" aria-labelledby="ai-toggle-${h.id}" aria-hidden="false">
+                <div class="ai-header flex items-center justify-between">
+                  <div class="flex items-center space-x-3">
+                    <div class="ai-title text-xs text-blue-600 font-medium mr-2">AIレコメンド</div>
+                    <div class="ai-progress w-36 h-2 bg-blue-100 rounded overflow-hidden"><div class="ai-progress-fill bg-blue-500 h-2 rounded" style="width:0%"></div></div>
+                    <div class="ai-percent text-xs text-blue-700 font-medium ml-2">--%</div>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <button id="ai-toggle-${h.id}" class="ai-toggle-btn text-sm text-blue-600" aria-expanded="false" aria-controls="ai-panel-${h.id}">展開</button>
+                  </div>
+                </div>
+
+                <!-- AXES: Empathy / Value / Common -->
+                <div class="ai-axes mt-2" aria-hidden="true">
+                  <div class="ai-axis">
+                    <div class="label">EMPATHY</div>
+                    <div class="ai-axis-bar"><div class="ai-axis-fill ai-empathy-fill" style="width:0%"></div></div>
+                    <div class="ai-axis-val ai-empathy-val">--</div>
+                  </div>
+                  <div class="ai-axis">
+                    <div class="label">VALUE</div>
+                    <div class="ai-axis-bar"><div class="ai-axis-fill ai-value-fill" style="width:0%"></div></div>
+                    <div class="ai-axis-val ai-value-val">--</div>
+                  </div>
+                  <div class="ai-axis">
+                    <div class="label">COMMON</div>
+                    <div class="ai-axis-bar"><div class="ai-axis-fill ai-common-fill" style="width:0%"></div></div>
+                    <div class="ai-axis-val ai-common-val">--</div>
+                  </div>
+                </div>
+
+                <div class="ai-chips mt-2 flex space-x-2 text-xs" aria-hidden="true"></div>
+                <div class="ai-weights mt-2 text-xs text-gray-600"></div>
+                <div class="ai-icebreakers mt-2"></div>
+                <div class="ai-explanation text-sm text-gray-700 mt-2" data-explain aria-hidden="true">${h.explanation || ''}</div>
+              </div>
+
+            </div>
+          </div>
+        `;
+        el.addEventListener('click', (e) => {
+          // prevent card click when clicking the update button
+          if (e.target.closest('.update-match-btn')) return;
+          openModal(h);
         });
-        
-        // ページロード時にAPI接続確認
-        window.onload = async function() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/health`);
-                if (response.ok) {
-                    console.log('✅ API server is connected');
-                }
-            } catch (error) {
-                console.log('⚠️ API server not available, will use mock data');
+
+        // attach handler for update button
+        // use delegation after appending to ensure querySelector finds element
+        container.appendChild(el);
+        const btn = el.querySelector('.update-match-btn');
+        btn.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          await updateMatch(h.id, btn, el);
+        });
+        // attach handler for show raw response button
+        const showBtn = el.querySelector('.show-raw-btn');
+        showBtn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          const id = el.getAttribute('data-id');
+          const hostObj = hosts.find(x => x.id === id);
+          const raw = hostObj?.raw || el.dataset.rawReason || '-- 応答なし --';
+          openRawModal(raw);
+        });
+        // wire inline AI panel toggle/detail buttons
+        const aiPanel = el.querySelector('[data-ai-panel]');
+        const aiToggle = el.querySelector('.ai-toggle-btn');
+        if (aiToggle) aiToggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const panel = document.getElementById(`ai-panel-${h.id}`);
+          const expanded = aiToggle.getAttribute('aria-expanded') === 'true';
+          // toggle collapsed state (collapsed = true -> show only one-line bar)
+          panel.classList.toggle('collapsed');
+          aiToggle.setAttribute('aria-expanded', String(!expanded));
+          // reveal/hide chips for screen readers
+          panel.querySelector('.ai-chips').setAttribute('aria-hidden', expanded);
+          const explEl = panel.querySelector('.ai-explanation');
+          if (explEl) explEl.setAttribute('aria-hidden', expanded);
+          aiToggle.innerText = panel.classList.contains('collapsed') ? '展開' : '折りたたむ';
+        });
+        // allow clicking the collapsed ai-panel bar itself to expand (but don't open the host modal)
+        if (aiPanel) {
+          aiPanel.addEventListener('click', (e) => {
+            // prevent the click from bubbling to card and opening modal
+            e.stopPropagation();
+            // ignore clicks on interactive elements inside the panel
+            if (e.target.closest('.update-match-btn') || e.target.closest('.show-raw-btn') || e.target.closest('.ai-toggle-btn')) return;
+            const panel = aiPanel;
+            // if currently collapsed, expand by triggering the toggle button if present
+            const isCollapsed = panel.classList.contains('collapsed');
+            if (isCollapsed && aiToggle) {
+              aiToggle.click();
             }
-        };
-    </script>
+          });
+        }
+      });
+    }
+
+    // Render inline AI content into a card's ai-panel
+    function renderInlinePanel(host, card) {
+      if (!card) return;
+      const panel = card.querySelector('[data-ai-panel]');
+      if (!panel) return;
+      // progress
+      const fill = panel.querySelector('.ai-progress-fill');
+      // show actual match only after an AI update (host.lastUpdated set) otherwise keep as 0%
+      const showActual = !!host.lastUpdated || !!host.ai;
+      if (fill) fill.style.width = (showActual && host.match != null ? host.match : 0) + '%';
+
+      // update visible percent label next to the progress bar
+      const percentEl = panel.querySelector('.ai-percent');
+      if (percentEl) {
+        if (host.loading) percentEl.innerText = '--%';
+        else percentEl.innerText = (showActual && host.match != null ? host.match + '%' : '--%');
+      }
+
+      // AXES: populate empathy/value/common mini-bars and numeric values
+      const empathyFill = panel.querySelector('.ai-empathy-fill');
+      const valueFill = panel.querySelector('.ai-value-fill');
+      const commonFill = panel.querySelector('.ai-common-fill');
+      const empathyVal = panel.querySelector('.ai-empathy-val');
+      const valueVal = panel.querySelector('.ai-value-val');
+      const commonVal = panel.querySelector('.ai-common-val');
+
+      // extract axis scores from host.ai with fallbacks
+      const ai = host.ai || {};
+      const eScoreRaw = (ai.empathy_score ?? findDeepKey(ai, 'empathy_score')) ?? null;
+      const vScoreRaw = (ai.value_score ?? findDeepKey(ai, 'value_score')) ?? null;
+      const cScoreRaw = (ai.commonground_score ?? findDeepKey(ai, 'commonground_score')) ?? (ai.common_ground_score ?? findDeepKey(ai, 'common_ground_score')) ?? null;
+      function fmtScore(s) { if (s == null) return null; const n = (typeof s === 'number') ? Math.max(0, Math.min(100, Math.round(s))) : (parseInt(String(s).replace(/[^0-9]/g,''),10) || null); return n; }
+      const eScore = fmtScore(eScoreRaw);
+      const vScore = fmtScore(vScoreRaw);
+      const cScore = fmtScore(cScoreRaw);
+
+      if (empathyFill) empathyFill.style.width = (eScore != null ? eScore : 0) + '%';
+      if (valueFill) valueFill.style.width = (vScore != null ? vScore : 0) + '%';
+      if (commonFill) commonFill.style.width = (cScore != null ? cScore : 0) + '%';
+      if (empathyVal) empathyVal.innerText = (eScore != null ? eScore + '%' : '情報不足');
+      if (valueVal) valueVal.innerText = (vScore != null ? vScore + '%' : '情報不足');
+      if (commonVal) commonVal.innerText = (cScore != null ? cScore + '%' : '情報不足');
+
+      // chips (always render three chips for age/gender/location)
+      const chips = panel.querySelector('.ai-chips');
+      if (chips) {
+        chips.innerHTML = '';
+        const comps = (ai && ai.score_components) ? ai.score_components : {};
+        const age = comps.age_score ?? (findDeepKey(ai || {}, 'age_score') ?? '--');
+        const gender = comps.gender_score ?? (findDeepKey(ai || {}, 'gender_score') ?? '--');
+        const location = comps.location_score ?? (findDeepKey(ai || {}, 'location_score') ?? '--');
+        const items = [{k:'年齢',v:age},{k:'性別',v:gender},{k:'位置',v:location}];
+        for (const it of items) {
+          const chip = document.createElement('span');
+          chip.className = 'bg-white text-blue-700 px-2 py-1 rounded shadow text-xs';
+          chip.innerText = `${it.k}: ${it.v}`;
+          chips.appendChild(chip);
+        }
+      }
+
+      // scoring weights display
+      const weightsEl = panel.querySelector('.ai-weights');
+      if (weightsEl) {
+        const w = (ai && ai.scoring_weights) ? ai.scoring_weights : (findDeepKey(ai || {}, 'scoring_weights') || {});
+        if (w && (w.empathy !== undefined || w.value !== undefined || w.commonground !== undefined)) {
+          weightsEl.innerText = `Weights — Empathy: ${w.empathy ?? '-'} / Value: ${w.value ?? '-'} / Common: ${w.commonground ?? '-'} `;
+        } else {
+          weightsEl.innerText = '';
+        }
+      }
+
+      // icebreakers
+      const iceEl = panel.querySelector('.ai-icebreakers');
+      if (iceEl) {
+        iceEl.innerHTML = '';
+        const ices = (ai && Array.isArray(ai.icebreakers)) ? ai.icebreakers : (findDeepKey(ai || {}, 'icebreakers') || []);
+        if (Array.isArray(ices) && ices.length > 0) {
+          for (const t of ices.slice(0,3)) {
+            const btn = document.createElement('button');
+            btn.className = 'ice-btn';
+            btn.type = 'button';
+            btn.innerText = t;
+            btn.title = 'コピー';
+            btn.addEventListener('click', (ev) => { ev.stopPropagation(); try { navigator.clipboard.writeText(t); btn.innerText = 'コピー済み'; setTimeout(()=>{ btn.innerText = t; },1000); } catch(e){ /* ignore */ } });
+            iceEl.appendChild(btn);
+          }
+        } else {
+          iceEl.innerHTML = '<div class="text-xs text-gray-500">アイスブレイク候補はありません</div>';
+        }
+      }
+
+      // explanation (moved inside ai-panel)
+      const expl = panel.querySelector('.ai-explanation');
+      if (expl) {
+        expl.innerHTML = ''; // clear existing
+        if (host.loading) {
+          expl.innerHTML = '<div class="ai-skeleton"><div class="ai-skel-rect ai-skel-expl"></div></div>';
+        } else {
+          // prefer explicit explanation from ai payload (may be label-separated string)
+          const explText = host.explanation || ai.explanation || findDeepKey(ai || {}, 'explanation') || '';
+          expl.innerHTML = explText || '';
+        }
+      }
+
+      // if loading, show skeleton in chips area
+      if (host.loading) {
+        const chipsEl = panel.querySelector('.ai-chips');
+        if (chipsEl) chipsEl.innerHTML = '<div class="ai-skeleton"><div class="ai-skel-rect ai-skel-progress"></div><div class="ai-skel-rect ai-skel-chip"></div><div class="ai-skel-rect ai-skel-chip"></div><div class="ai-skel-rect ai-skel-chip"></div></div>';
+        return;
+      }
+      // Note: explanation text is shown in the main card area (data-explain), not under the progress bar to avoid redundancy.
+    }
+
+    // Calendar state for modal
+    const calendarState = { year: null, month: null, host: null, selectedStart: null, selectedEnd: null };
+
+    function formatDateYMD(y, m, d) {
+      return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    }
+
+    function daysInMonth(y, m) {
+      return new Date(y, m, 0).getDate();
+    }
+
+    function renderCalendarForHost(host) {
+      const cal = document.getElementById('modal-calendar');
+      cal.innerHTML = '';
+
+      // Weekday headers
+      const weekdays = ['日','月','火','水','木','金','土'];
+      weekdays.forEach(w => {
+        const el = document.createElement('div');
+        el.className = 'text-xs text-gray-500';
+        el.innerText = w;
+        cal.appendChild(el);
+      });
+
+      const y = calendarState.year;
+      const m = calendarState.month; // 1-12
+      const firstWeekday = new Date(y, m-1, 1).getDay();
+      const dim = daysInMonth(y, m);
+
+      // fill blanks
+      for (let i=0;i<firstWeekday;i++) {
+        const blank = document.createElement('div');
+        cal.appendChild(blank);
+      }
+
+      for (let d=1; d<=dim; d++) {
+        const day = document.createElement('button');
+        day.type = 'button';
+        day.className = 'calendar-day';
+        const dateStr = formatDateYMD(y, m, d);
+        day.innerText = d;
+
+        const isAvailable = host.available && host.available.includes(dateStr);
+        if (isAvailable) day.classList.add('available');
+
+        // highlight selected range
+        const selStart = calendarState.selectedStart;
+        const selEnd = calendarState.selectedEnd;
+        if (selStart && selEnd) {
+          const dt = new Date(dateStr);
+          if (dt >= new Date(selStart) && dt <= new Date(selEnd)) {
+            day.style.boxShadow = 'inset 0 0 0 2px rgba(59,130,246,0.12)';
+            day.style.borderRadius = '8px';
+          }
+        }
+
+        day.addEventListener('click', () => {
+          // only allow selecting available dates
+          if (!isAvailable) return;
+          if (!calendarState.selectedStart || (calendarState.selectedStart && calendarState.selectedEnd)) {
+            calendarState.selectedStart = dateStr;
+            calendarState.selectedEnd = null;
+          } else {
+            // set end (ensure chronological)
+            const a = new Date(calendarState.selectedStart);
+            const b = new Date(dateStr);
+            if (b < a) { calendarState.selectedEnd = calendarState.selectedStart; calendarState.selectedStart = dateStr; }
+            else calendarState.selectedEnd = dateStr;
+          }
+          updateSelectedDisplay();
+          renderCalendarForHost(host);
+        });
+
+        cal.appendChild(day);
+      }
+
+      // footer note is handled separately
+    }
+
+    function updateSelectedDisplay() {
+      const selEl = document.getElementById('selected-dates');
+      if (!calendarState.selectedStart) return selEl.innerText = '未選択';
+      if (!calendarState.selectedEnd) return selEl.innerText = `${calendarState.selectedStart} (チェックイン)`;
+      selEl.innerText = `${calendarState.selectedStart} 〜 ${calendarState.selectedEnd}`;
+    }
+
+    function openModal(host) {
+      document.getElementById('modal-name').innerText = host.name;
+      document.getElementById('modal-location').innerText = host.location;
+      document.getElementById('modal-bio').innerText = host.bio;
+
+      // initialize calendar state: choose month based on first available date or today
+      calendarState.host = host;
+      calendarState.selectedStart = null;
+      calendarState.selectedEnd = null;
+      let refDate = new Date();
+      if (host.available && host.available.length > 0) {
+        refDate = new Date(host.available[0]);
+      }
+      calendarState.year = refDate.getFullYear();
+      calendarState.month = refDate.getMonth() + 1; // 1-12
+
+      document.getElementById('cal-month').innerText = `${calendarState.year}年${String(calendarState.month).padStart(2,'0')}月`;
+
+      // attach prev/next
+      document.getElementById('cal-prev').onclick = () => {
+        calendarState.month -= 1;
+        if (calendarState.month < 1) { calendarState.month = 12; calendarState.year -= 1; }
+        document.getElementById('cal-month').innerText = `${calendarState.year}年${String(calendarState.month).padStart(2,'0')}月`;
+        renderCalendarForHost(host);
+      };
+      document.getElementById('cal-next').onclick = () => {
+        calendarState.month += 1;
+        if (calendarState.month > 12) { calendarState.month = 1; calendarState.year += 1; }
+        document.getElementById('cal-month').innerText = `${calendarState.year}年${String(calendarState.month).padStart(2,'0')}月`;
+        renderCalendarForHost(host);
+      };
+
+      renderCalendarForHost(host);
+      updateSelectedDisplay();
+
+      document.getElementById('host-modal').classList.remove('hidden');
+      document.getElementById('host-modal').classList.add('flex');
+    }
+    function closeModal() {
+      document.getElementById('host-modal').classList.remove('flex');
+      document.getElementById('host-modal').classList.add('hidden');
+    }
+
+    document.getElementById('modal-close').addEventListener('click', closeModal);
+
+    // friend / fav actions (mock)
+    document.getElementById('friend-btn').addEventListener('click', () => { alert('友達申請を送信しました'); closeModal(); });
+    document.getElementById('fav-btn').addEventListener('click', () => {
+      const icon = document.getElementById('fav-icon');
+      if (icon.classList.contains('far')) { icon.classList.remove('far'); icon.classList.add('fas'); icon.style.color = '#ef4444'; alert('お気に入りに追加しました'); }
+      else { icon.classList.remove('fas'); icon.classList.add('far'); icon.style.color = ''; alert('お気に入りを解除しました'); }
+    });
+
+    // Prompt editor modal handlers
+    function openPromptEditor() {
+      const sysTA = document.getElementById('system-prompt-textarea');
+      const userTA = document.getElementById('prompt-textarea');
+      if (sysTA) sysTA.value = systemPrompt || '';
+      if (userTA) userTA.value = promptTemplate || '';
+      const modal = document.getElementById('prompt-modal');
+      if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+    }
+    function closePromptEditor() {
+      const modal = document.getElementById('prompt-modal');
+      if (modal) { modal.classList.remove('flex'); modal.classList.add('hidden'); }
+    }
+
+    const editPromptBtn = document.getElementById('edit-prompt-btn');
+    if (editPromptBtn) editPromptBtn.addEventListener('click', (e) => { e.preventDefault(); openPromptEditor(); });
+
+    const promptCancelBtn = document.getElementById('prompt-cancel');
+    if (promptCancelBtn) promptCancelBtn.addEventListener('click', (e) => { e.preventDefault(); closePromptEditor(); });
+
+    const promptSaveBtn = document.getElementById('prompt-save');
+    if (promptSaveBtn) promptSaveBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const sysTA = document.getElementById('system-prompt-textarea');
+      const userTA = document.getElementById('prompt-textarea');
+      if (sysTA) systemPrompt = sysTA.value;
+      if (userTA) promptTemplate = userTA.value;
+      closePromptEditor();
+      try { alert('プロンプトを保存しました'); } catch (err) { /* ignore */ }
+    });
+
+    // NOTE: removed an accidental top-level duplicated AI call block here which contained `await` and caused a script error.
+
+    // Update only the DOM for a single host card (avoid full re-render/resort)
+    function updateCardDisplay(host) {
+      try {
+        const container = document.getElementById('hosts');
+        const card = container.querySelector(`.host-card[data-id="${host.id}"]`);
+        if (!card) return;
+        const matchEl = card.querySelector('.match-rate');
+        if (matchEl) matchEl.innerText = `${host.match}%マッチ`;
+        const lastEl = card.querySelector('.last-updated');
+        if (lastEl) lastEl.innerText = host.lastUpdated || '-';
+        const explainEl = card.querySelector('[data-explain]');
+        if (explainEl) explainEl.innerText = host.explanation || '';
+        // update inline ai panel
+        renderInlinePanel(host, card);
+        // ensure raw stored on host model; show-raw reads from model
+        // in case any tag-based snippets rely on match/reason snippets, update them too
+        const reasonBadge = card.querySelector('.match-reason');
+        if (reasonBadge && host.tags) reasonBadge.innerText = (host.tags.slice(0,2).join(' / ')) + ' による高い親和性が確認されています。';
+      } catch (e) {
+        // fallback: if anything goes wrong, re-render entire list
+        renderHosts();
+      }
+    }
+
+    // Small helper: deep search object for any of candidate keys
+    function findDeepValue(obj, candidates = []) {
+      if (!obj || typeof obj !== 'object') return undefined;
+      for (const k of candidates) {
+        if (Object.prototype.hasOwnProperty.call(obj, k)) return obj[k];
+      }
+      for (const key of Object.keys(obj)) {
+        const val = obj[key];
+        if (val && typeof val === 'object') {
+          const found = findDeepValue(val, candidates);
+          if (found !== undefined) return found;
+        }
+      }
+      return undefined;
+    }
+
+    function parseNumberLike(v) {
+      if (v == null) return null;
+      if (typeof v === 'number') return v;
+      const s = String(v);
+      // percent like "85%"
+      const m1 = s.match(/(\d{1,3}(?:\.\d+)?)\s*%/);
+      if (m1) return Number(m1[1]);
+      // plain number inside text
+      const m2 = s.match(/(-?\d+(?:\.\d+)?)/);
+      if (m2) return Number(m2[1]);
+      return null;
+    }
+
+    // Implement updateMatch invoked by the 更新 button. Attempts to call backend, parse JSON-like output,
+    // and set host.ai / host.raw / host.match / host.explanation and lastUpdated. Uses extractBalancedObjectText
+    // to be resilient to noisy model outputs.
+    async function updateMatch(hostId, btn, cardEl) {
+      const host = hosts.find(h => h.id === hostId);
+      if (!host) return;
+      host.loading = true;
+      if (btn) { btn.disabled = true; btn.innerText = '更新中...'; }
+      updateCardDisplay(host);
+
+      const prompt = buildPrompt(host, 'match');
+      const system_for_call = buildSystemPrompt(host);
+
+      try {
+        const res = await fetch('http://localhost:8000/api/v1/ai/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ system_prompt: system_for_call, prompt, max_tokens: 4096 })
+        });
+
+        const text = await res.text();
+        host.raw = text;
+
+        // Try to extract a JSON-like block first
+        let parsed = null;
+        const maybeObjText = extractBalancedObjectText(text);
+        if (maybeObjText) {
+          try { parsed = JSON.parse(maybeObjText); } catch (e) { parsed = null; }
+        }
+
+        // If still not parsed, attempt to parse entire body as JSON
+        if (!parsed) {
+          try { parsed = JSON.parse(text); } catch (e) { parsed = null; }
+        }
+
+        // Best-effort: extract numbers from parsed or raw text
+        let matchVal = null;
+        let aiPayload = null;
+
+        if (parsed && typeof parsed === 'object') {
+          aiPayload = parsed;
+          // common candidates
+          const candidates = ['match_rate','matchRate','match','overall_match','score'];
+          for (const c of candidates) {
+            const found = findDeepValue(parsed, [c]);
+            const num = parseNumberLike(found);
+            if (num != null) { matchVal = num; break; }
+          }
+        }
+
+        // fallback: regex search in raw text for e.g. "match_rate": 85 or 85%
+        if (matchVal == null) {
+          const m = text.match(/"?match[_A-Za-z0-9]*"?\s*[:=]\s*([0-9]+(?:\.[0-9]+)?)/i);
+          if (m) matchVal = Number(m[1]);
+          else {
+            const m2 = text.match(/(\d{1,3}(?:\.\d+)?)\s*%/);
+            if (m2) matchVal = Number(m2[1]);
+          }
+        }
+
+        // assign ai payload if found
+        if (aiPayload) host.ai = aiPayload;
+        // set match (clamp 0-100 and round)
+        if (matchVal != null && !Number.isNaN(matchVal)) {
+          host.match = Math.max(0, Math.min(100, Math.round(matchVal)));
+        } else {
+          // if no numeric match, keep previous match but still persist raw
+        }
+
+        // explanation: prefer parsed.explanation or fallback to trimmed text snippet
+        let explanation = null;
+        if (aiPayload && (aiPayload.explanation || aiPayload.reason)) explanation = aiPayload.explanation || aiPayload.reason;
+        if (!explanation) {
+          // try to pull lines that look explanatory (skip JSON block)
+          const cleaned = text.replace(maybeObjText || '', '').trim();
+          explanation = cleaned.split('\n').slice(0,3).join('\n').trim();
+        }
+        host.explanation = explanation;
+        host.lastUpdated = new Date().toLocaleString();
+
+      } catch (err) {
+        host.raw = `通信/解析エラー: ${err.message}`;
+      } finally {
+        host.loading = false;
+        if (btn) { btn.disabled = false; btn.innerText = '更新'; }
+        updateCardDisplay(host);
+      }
+    }
+
+    // Raw modal helpers
+    function openRawModal(text) {
+      document.getElementById('raw-pre').textContent = text;
+      document.getElementById('raw-modal').classList.remove('hidden');
+      document.getElementById('raw-modal').classList.add('flex');
+    }
+    function closeRawModal() {
+      document.getElementById('raw-modal').classList.remove('flex');
+      document.getElementById('raw-modal').classList.add('hidden');
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      const rawClose = document.getElementById('raw-close');
+      if (rawClose) rawClose.addEventListener('click', closeRawModal);
+    });
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      renderHosts();
+    });
+  </script>
 </body>
 </html>
